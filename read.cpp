@@ -102,6 +102,8 @@ void read_bfile2mem(char *path,sFMindex *memptr, uint32_t num)
 		memset(memptr->c,0,len);//将内存空间都赋值为‘\0’
 
 		fread(memptr->c,1,len,file);
+		memptr->sa_gap = memptr->c[4];
+		memptr->occ_gap = memptr->c[5];
 //		for(uint32_t i = 0; i < len / 4; i++)
 //		{
 //			printf("%d ",(memptr->c)[i]);
@@ -162,9 +164,5 @@ void read_bfile2mem(char *path,sFMindex *memptr, uint32_t num)
 	}
 }
 
-void get_buildpara(sFMindex mem,struct build_para * para)
-{
-	para->sa_gap = mem.c[4];
-	para->occ_gap = mem.c[5];
-}
+
 

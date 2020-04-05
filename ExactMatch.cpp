@@ -82,19 +82,19 @@ uint32_t calc_offset(char c)
 	return offset;
 }
 
-uint32_t calc_OCC(sFMindex mem,struct build_para para,char c,uint32_t pos)
+uint32_t calc_OCC(sFMindex mem,char c,uint32_t pos)
 {
 	//calc the occ_array  input : pos(pos in bseq) gap(every gap pos save a occa)
 	uint32_t offset = calc_offset(c);
-	if(pos % para.occ_gap == 0)
+	if(pos % mem.occ_gap == 0)
 	{
-		return *(mem.occa + (pos/para.occ_gap)*4 + offset);
+		return *(mem.occa + (pos/mem.occ_gap)*4 + offset);
 	}
 	else
 	{
-		uint32_t rslt = *(mem.occa + (pos/para.occ_gap)*4 + offset);
-		uint32_t len = pos > para.occ_gap ? pos - pos % para.occ_gap : 0;
-		for(uint32_t i = 0; i < pos % para.occ_gap; i++)
+		uint32_t rslt = *(mem.occa + (pos/mem.occ_gap)*4 + offset);
+		uint32_t len = pos > mem.occ_gap ? pos - pos % mem.occ_gap : 0;
+		for(uint32_t i = 0; i < pos % mem.occ_gap; i++)
 		{
 			if(mem.b[len+i] == c)
 			{
@@ -105,27 +105,28 @@ uint32_t calc_OCC(sFMindex mem,struct build_para para,char c,uint32_t pos)
 	}
 }
 
-uint32_t LF_Mapping(sFMindex mem,struct build_para para,char c,uint32_t pos)
+uint32_t LF_Mapping(sFMindex mem,char c,uint32_t pos)
 {
 	//last first mapping
-	return calc_C(mem,c) + calc_OCC(mem,para,c,pos) + 1;
+	return calc_C(mem,c) + calc_OCC(mem,c,pos) + 1;
 }
 
-uint32_t LF_Mapping_l(sFMindex mem,struct build_para para,char c,uint32_t pos)
+uint32_t LF_Mapping_l(sFMindex mem,char c,uint32_t pos)
 {
 	//last first mapping
-	return calc_C(mem,c) + calc_OCC(mem,para,c,pos) + 1;
+	return calc_C(mem,c) + calc_OCC(mem,c,pos) + 1;
 }
 
-uint32_t LF_Mapping_h(sFMindex mem,struct build_para para,char c,uint32_t pos)
+uint32_t LF_Mapping_h(sFMindex mem,char c,uint32_t pos)
 {
 	//last first mapping
-	return calc_C(mem,c) + calc_OCC(mem,para,c,pos+1);
+//	return calc_C(mem,c) + calc_OCC(mem,para,c,pos) + 1 - 1;
+	return calc_C(mem,c) + calc_OCC(mem,c,pos+1);
 }
 
 
 
-uint32_t* calc_SArangeSeq(sFMindex mem,struct build_para para,char *read)
+uint32_t* calc_SArangeSeq(sFMindex mem,char *read)
 {
 	char ch;
 	int32_t i = strlen(read) - 1;
@@ -134,45 +135,45 @@ uint32_t* calc_SArangeSeq(sFMindex mem,struct build_para para,char *read)
 	p[0] = calc_C(mem,ch) + 1;
 	p[1] = calc_C(mem,C_next(ch)) + 1;
 	i--;
-	while(p[0] < p[1] && i >= 0)
+	while(p[0] <= p[1] && i >= 0)
 	{
 		ch = read[i];
-		p[0] = LF_Mapping_l(mem,para,ch,p[0]);
-		p[1] = LF_Mapping_h(mem,para,ch,p[1]);
+		p[0] = LF_Mapping_l(mem,ch,p[0]);
+		p[1] = LF_Mapping_h(mem,ch,p[1]);
 		i--;
 	}
 	return p;
 }
 
-uint32_t* calc_SArangeChar(sFMindex mem,struct build_para para,uint32_t *pre, char ch)
+uint32_t* calc_SArangeChar(sFMindex mem,uint32_t *pre, char ch)
 {
 	uint32_t *p = (uint32_t *)malloc(sizeof(uint32_t)*2);
-	p[0] = LF_Mapping_l(mem,para,ch,pre[0]);
-	p[1] = LF_Mapping_h(mem,para,ch,pre[1]);
+	p[0] = LF_Mapping_l(mem,ch,pre[0]);
+	p[1] = LF_Mapping_h(mem,ch,pre[1]);
 	return p;
 }
 
-uint32_t calc_SA(sFMindex mem,struct build_para para,uint32_t pos)
+uint32_t calc_SA(sFMindex mem,uint32_t pos)
 {
-	if(pos % para.sa_gap == 0)
+	if(pos % mem.sa_gap == 0)
 	{
-		return mem.sa[pos/para.sa_gap];
+		return mem.sa[pos/mem.sa_gap];
 	}
 	else
 	{
 		uint32_t tmp = pos;
 		uint32_t cnt = 0;
 		char ch = mem.b[tmp];
-		while(tmp % para.sa_gap != 0)
+		while(tmp % mem.sa_gap != 0)
 		{
 			if(ch == '$')
 			{
 				return cnt;
 			}
-			tmp = LF_Mapping(mem,para,ch,tmp);
+			tmp = LF_Mapping(mem,ch,tmp);
 			ch = mem.b[tmp];
 			cnt++;
 		}
-		return mem.sa[tmp/para.sa_gap] + cnt;
+		return mem.sa[tmp/mem.sa_gap] + cnt;
 	}
 }

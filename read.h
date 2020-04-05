@@ -10,6 +10,8 @@
 #include "basic.h"
 struct sFMindex
 {
+	uint32_t sa_gap;
+	uint32_t occ_gap;
 	char *b;
 	uint32_t *c;
 	uint32_t *occa;
@@ -20,7 +22,6 @@ struct sFMindex
 
 void *read_binfile(char *path);
 void read_bfile2mem(char *path,sFMindex *memptr, uint32_t num);
-void get_buildpara(sFMindex mem,struct build_para * para);
 
 
 #endif /* READ_H_ */

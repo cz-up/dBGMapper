@@ -30,10 +30,12 @@ struct seed
 struct TPTnode
 {
 	char c;
-	char dir;
-	uint32_t offset;
+	uint8_t level;
+	uint8_t offset;
 	struct TPTnode * p_parent;
 	struct TPTnode * p_child[4];
+	uint32_t * edarry;
+	uint32_t * saarry;
 };
 
 struct seedext
@@ -46,10 +48,10 @@ struct seedext
 	uint32_t ** p2_extchcnt;
 };
 
-void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct para_dBGindex sdBGidx,\
-		uint32_t extlen, char *seq, uint32_t unitperkmer);
+void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct para_dBGindex sdBGidx, sFMindex FMidx,\
+		char dir, uint32_t extlen, char *seq, char *alignseq, uint8_t tau);
 void init_seedext(struct TPTnode node, struct seedext *p_seedext, char *seed);
-void calc_seedextpara(struct seedext *p_seedext, char *calcseq, uint32_t tau, sFMindex n_index, sFMindex r_index, struct build_para para);
+void calc_seedextpara(struct seedext *p_seedext, char *calcseq, uint32_t tau, sFMindex n_index, sFMindex r_index);
 void free_seedext(struct seedext *p_seedext);
 void print_extree(struct TPTnode node,char *seq, struct seedext *p_seedext);
 void destory_extree(struct TPTnode *pnode);

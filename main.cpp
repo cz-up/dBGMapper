@@ -17,7 +17,7 @@ int main(int argc, char** argv)
 {
 
 	char *p_dbg_path;
-	char *kmertest;
+	char *kmertest,*alignseq;
 	struct dBG p_test;
 	uint32_t extlen;
 	char dir;
@@ -43,20 +43,20 @@ int main(int argc, char** argv)
 		{
 			kmertest = argv[i+1];
 		}
+		if(argv[i][0]=='-'&&argv[i][1]=='a')//reference
+		{
+			alignseq = argv[i+1];
+		}
 
 	}
 //	struct timeval tvs,tve;
 //	gettimeofday(&tvs,NULL);
 	char nindex[] = "./nindex";
 	char rindex[] = "./rindex";
-	struct sFMindex nFMidx,rFMidx;
+	struct sFMindex nFMidx,rFMidx,FMtmp;
 	struct build_para bd_para;
 	read_bfile2mem(nindex,&nFMidx,0);
-	get_buildpara(nFMidx,&bd_para);
 	read_bfile2mem(rindex,&rFMidx,0);
-	uint32_t *psararr;
-	psararr = calc_SArangeSeq(nFMidx, bd_para, kmertest);
-	cout << "frequency:" << psararr[1] - psararr[0] + 1 << endl;
 
 	cout <<"start..."<<endl;
 
@@ -71,47 +71,59 @@ int main(int argc, char** argv)
 //	char *kmer = "CAGGCAGGGGCAGGTG";
 	struct TPTnode rootnode;
 	rootnode.c = 'R';
-	rootnode.dir = dir;
 	rootnode.offset = 0;
+	rootnode.edarry = (uint32_t*)malloc(sizeof(uint32_t)*(2*1+1));
+	rootnode.edarry[0] = 0;
+	for(int i = 1; i < 2*1+1; i++)
+	{
+		rootnode.edarry[i] = i-1;
+	}
 	for(uint32_t ii = 0 ; ii < 4; ii++)
 	{
-		rootnode.p[ii] = NULL;
+		rootnode.p_child[ii] = NULL;
 	}
-	ext_treenode(bit_para, &rootnode, sdBGindex,\
-			extlen, kmertest, unitperkmer);
+	if(dir == 'O')
+	{
+		FMtmp = rFMidx;
+	}
+	if(dir == 'I')
+	{
+		FMtmp = nFMidx;
+	}
+	ext_treenode(bit_para, &rootnode, sdBGindex, FMtmp, dir,
+			extlen, kmertest, alignseq, 1);
 	cout << "ext_treenode finished!" << endl;
-
 	char *extseq = new char[6]();
 	struct seedext sedextest;
 	init_seedext(rootnode, &sedextest, kmertest);
 	cout << "init_seedext" << endl;
-	print_extree(rootnode, extseq, &sedextest);
+	print_extree(rootnode, extseq, NULL);
 	cout << endl;
 	cout << "print_extree done" << endl;
-	calc_seedextpara(&sedextest, "CCAC" , 1, nFMidx, rFMidx, bd_para);
-	for(uint32_t i = 0; i < strlen(sedextest.seqext[0]); i++)
-	{
-		for(uint32_t j = 0; j < 3; j++)
-		{
-			cout << sedextest.p3_extedarr[0][i][j] << " ";
-		}
-		cout << endl;
-	}
-	cout << "print the extend char frequency." << endl;
-	for(uint32_t i = 0; i < sedextest.num; i++)
-	{
-		for(uint32_t j = 0; j < strlen(sedextest.seqext[i]); j++)
-		{
-			cout << sedextest.p2_extchcnt[i][j] << " ";
-		}
-		cout << endl;
-	}
-	cout << "calc_seedext" << endl;
-	free_seedext(&sedextest);
-	cout << "free_seedext" << endl;
-	cout << "print_extree finished" << endl;
-	destory_extree(&rootnode);
-	cout << "destory_extree finished!" << endl;
+//	calc_seedextpara(&sedextest, "CCAC" , 1, nFMidx, rFMidx, bd_para);
+//	for(uint32_t i = 0; i < strlen(sedextest.seqext[0]); i++)
+//	{
+//		for(uint32_t j = 0; j < 3; j++)
+//		{
+//			cout << sedextest.p3_extedarr[0][i][j] << " ";
+//		}
+//		cout << endl;
+//	}
+//	cout << "print the extend char frequency." << endl;
+//	for(uint32_t i = 0; i < sedextest.num; i++)
+//	{
+//		for(uint32_t j = 0; j < strlen(sedextest.seqext[i]); j++)
+//		{
+//			cout << sedextest.p2_extchcnt[i][j] << " ";
+//		}
+//		cout << endl;
+//	}
+//	cout << "calc_seedext" << endl;
+//	free_seedext(&sedextest);
+//	cout << "free_seedext" << endl;
+//	cout << "print_extree finished" << endl;
+//	destory_extree(&rootnode);
+//	cout << "destory_extree finished!" << endl;
 	cout << "gen dBG over" << endl;
 	free_dBGindex(&sdBGindex);
 //	Test_dBG_Attribute(&p_test, p_dbg_path);
