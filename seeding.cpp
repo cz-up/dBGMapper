@@ -312,15 +312,6 @@ void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct 
 			if(pnode->c == 'R')
 			{
 				strcpy(seqe,seq);
-//				if(dir == 'O')
-//				{
-//					reverseq(seqe);
-//				}
-//				pnode->saarry = calc_SArangeSeq(FMidx,seqe);
-//				if(dir == 'O')
-//				{
-//					reverseq(seqe);
-//				}
 			}
 			else
 			{
@@ -342,7 +333,6 @@ void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct 
 			ukmer_ptr = Tgenerate_array<uint64_t>(sdBGidx.ukN);
 			uint64_t bkmerfindret,ukmerfindret;
 			bkmerfindret = Tfind_arrindexN<uint64_t>(bkmer_ptr, sdBGidx.p_branchedkmer, hashvalue_tmp,bit_para.kmer64Len);
-			ukmerfindret = Tfind_arrindexN<uint64_t>(ukmer_ptr, sdBGidx.p_unbranchedkmer, hashvalue_tmp,bit_para.kmer64Len);
 			if(bkmerfindret != ULLONG_MAX)
 			{
 				uint8_t adinfo = sdBGidx.p_branchedkmerad[bkmerfindret];
@@ -387,7 +377,7 @@ void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct 
 						}
 						if(extflag == true)
 						{
-							ext_treenode(bit_para, pnode->p_child[i], sdBGidx, FMidx, dir, extlen-1, seq, alignseq, tau);
+							ext_treenode(bit_para, pnode->p_child[i], sdBGidx, FMidx, dir, extlen-1, seqe, alignseq, tau);
 						}
 						else
 						{
@@ -398,6 +388,7 @@ void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct 
 					adinfo >>= 1;
 				}
 			}
+			ukmerfindret = Tfind_arrindexN<uint64_t>(ukmer_ptr, sdBGidx.p_unbranchedkmer, hashvalue_tmp,bit_para.kmer64Len);
 			if(ukmerfindret != ULLONG_MAX)//如果是unipath上的kmer  判断在unipath上的offset 根据是向出度方向还是入度方向扩展来找
 			{
 				uint32_t ukmerid = sdBGidx.p_unbranchedkmerid[ukmerfindret];
