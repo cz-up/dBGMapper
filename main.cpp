@@ -55,8 +55,8 @@ int main(int argc, char** argv)
 	char rindex[] = "./rindex";
 	struct sFMindex nFMidx,rFMidx,FMtmp;
 	struct build_para bd_para;
-	read_bfile2mem(nindex,&nFMidx,0);
-	read_bfile2mem(rindex,&rFMidx,0);
+	read_bfile2index(nindex,&nFMidx,0);
+	read_bfile2index(rindex,&rFMidx,0);
 
 	cout <<"start..."<<endl;
 
@@ -70,28 +70,9 @@ int main(int argc, char** argv)
 //	char *kmer = "CCATGGCTGCTTTTCG";
 //	char *kmer = "CAGGCAGGGGCAGGTG";
 	struct TPTnode rootnode;
-	rootnode.c = 'R';
-	rootnode.offset = 0;
-	rootnode.edarry = (uint32_t*)malloc(sizeof(uint32_t)*(2*1+1));
-	rootnode.edarry[0] = 0;
-	for(int i = 1; i < 2*1+1; i++)
-	{
-		rootnode.edarry[i] = i-1;
-	}
-	for(uint32_t ii = 0 ; ii < 4; ii++)
-	{
-		rootnode.p_child[ii] = NULL;
-	}
-	if(dir == 'O')
-	{
-		FMtmp = rFMidx;
-	}
-	if(dir == 'I')
-	{
-		FMtmp = nFMidx;
-	}
+	init_rootnode(&rootnode, kmertest, dir, &FMtmp, nFMidx, rFMidx, 2);
 	ext_treenode(bit_para, &rootnode, sdBGindex, FMtmp, dir,
-			extlen, kmertest, alignseq, 1);
+			extlen, kmertest, alignseq, 2);
 	cout << "ext_treenode finished!" << endl;
 	char *extseq = new char[6]();
 	struct seedext sedextest;

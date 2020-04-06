@@ -21,7 +21,8 @@ struct sFMindex
 };
 
 void *read_binfile(char *path);
-void read_bfile2mem(char *path,sFMindex *memptr, uint32_t num);
+void read_bfile2index(char *path,sFMindex *memptr, uint32_t num);
+void free_FMindex(sFMindex *memptr);
 
 
 #endif /* READ_H_ */

@@ -56,7 +56,7 @@ void *read_binfile(char *path)
 	return (void *)(ptr);
 }
 
-void read_bfile2mem(char *path,sFMindex *memptr, uint32_t num)
+void read_bfile2index(char *path,sFMindex *memptr, uint32_t num)
 {
 	//num is the number of file :  SA1 SA2 SA3...
 	FILE * file = NULL;
@@ -164,5 +164,31 @@ void read_bfile2mem(char *path,sFMindex *memptr, uint32_t num)
 	}
 }
 
+void free_FMindex(sFMindex *memptr)
+{
+	if(memptr)
+	{
+		if(memptr->b)
+		{
+			free(memptr->b);
+			memptr->b = NULL;
+		}
+		if(memptr->c)
+		{
+			free(memptr->c);
+			memptr->c = NULL;
+		}
+		if(memptr->occa)
+		{
+			free(memptr->occa);
+			memptr->occa = NULL;
+		}
+		if(memptr->sa)
+		{
+			free(memptr->sa);
+			memptr->sa = NULL;
+		}
+	}
+}
 
 

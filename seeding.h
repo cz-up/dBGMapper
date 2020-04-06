@@ -48,6 +48,7 @@ struct seedext
 	uint32_t ** p2_extchcnt;
 };
 
+void init_rootnode(struct TPTnode *pnode, char *seq, char dir, sFMindex *pFMinx, sFMindex nFMidx, sFMindex rFMidx, uint8_t tau);
 void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct para_dBGindex sdBGidx, sFMindex FMidx,\
 		char dir, uint32_t extlen, char *seq, char *alignseq, uint8_t tau);
 void init_seedext(struct TPTnode node, struct seedext *p_seedext, char *seed);
