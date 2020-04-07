@@ -36,6 +36,8 @@ struct para_dBGindex
 	uint64_t ukN;
 	uint64_t *p_unbranchedkmer;
 	uint32_t *p_unbranchedkmerid;
+	uint64_t **p2_bkmer;
+	uint64_t **p2_ukmer;
 };
 
 void calc_onesinchar(uint8_t in,uint64_t &num);

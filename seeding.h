@@ -31,7 +31,7 @@ struct TPTnode
 {
 	char c;
 	uint8_t level;
-	uint8_t offset;
+	uint8_t offset;			//假设unipath最大长度不超过255   统计如果大于255  改为uint16_t
 	struct TPTnode * p_parent;
 	struct TPTnode * p_child[4];
 	uint32_t * edarry;

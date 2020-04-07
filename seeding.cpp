@@ -251,6 +251,29 @@ void init_rootnode(struct TPTnode *pnode, char *seq, char dir, sFMindex *pFMinx,
 	free(tmpseq);
 }
 
+bool init_childnode(struct TPTnode *pnodec, struct TPTnode *pnodep, sFMindex FMidx, char *alignseq, uint8_t tau)  //返回真表示继续扩展
+{
+	pnodec->p_parent = pnodep;
+	pnodec->level = pnodep->level + 1;
+	calc_edarray(pnodec, alignseq, tau);
+	pnodec->saarry = calc_SArangeChar(FMidx,pnodep->saarry,pnodec->c);
+	if(pnodec->saarry[1] - pnodec->saarry[0])
+	{
+		for(uint32_t i = 0; i < 2*tau+1; i++)
+		{
+			if(pnodec->edarry[i] <= tau)
+			{
+				for(uint32_t ii = 0 ; ii < 4; ii++)
+				{
+					pnodec->p_child[ii] = NULL;
+				}
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct para_dBGindex sdBGidx, sFMindex FMidx,\
 		char dir, uint32_t extlen, char *seq, char *alignseq, uint8_t tau)
 {
@@ -262,37 +285,16 @@ void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct 
 			if(dir == 'I')
 			{
 				pnode->p_child[0] = (struct TPTnode *)malloc(sizeof(struct TPTnode));
-				pnode->p_child[0]->p_parent = pnode;
 				pnode->p_child[0]->offset = pnode->offset - 1;
 				pnode->p_child[0]->c = seq[pnode->p_child[0]->offset];  //这里可能有问题
-				pnode->p_child[0]->level = pnode->level + 1;
-				for(uint32_t ii = 0 ; ii < 4; ii++)
-				{
-					pnode->p_child[0]->p_child[ii] = NULL;
-				}
 			}
 			else
 			{
 				pnode->p_child[0] = (struct TPTnode *)malloc(sizeof(struct TPTnode));
-				pnode->p_child[0]->p_parent = pnode;
 				pnode->p_child[0]->offset = pnode->offset + 1;
 				pnode->p_child[0]->c = seq[pnode->offset+bit_para.kmer1Len/2];
-				pnode->p_child[0]->level = pnode->level + 1;
-				for(uint32_t ii = 0 ; ii < 4; ii++)
-				{
-					pnode->p_child[0]->p_child[ii] = NULL;
-				}
 			}
-			calc_edarray(pnode->p_child[0], alignseq, tau);
-			pnode->p_child[0]->saarry = calc_SArangeChar(FMidx,pnode->saarry,pnode->p_child[0]->c);
-			for(uint32_t j = 0; j < 2*tau+1; j++)
-			{
-				if(pnode->p_child[0]->edarry[j] <= tau)
-				{
-					extflag = true;
-					break;
-				}
-			}
+			extflag = init_childnode(pnode->p_child[0], pnode, FMidx, alignseq, tau);
 			if(extflag == true)
 			{
 				ext_treenode(bit_para, pnode->p_child[0], sdBGidx, FMidx, dir, extlen-1, seq, alignseq, tau);
@@ -327,12 +329,8 @@ void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct 
 				}
 			}
 			cal_hash_value_directly_256bit(seqe,hashvalue_tmp,bit_para);
-			uint64_t **bkmer_ptr;
-			bkmer_ptr = Tgenerate_array<uint64_t>(sdBGidx.bkN);
-			uint64_t **ukmer_ptr;
-			ukmer_ptr = Tgenerate_array<uint64_t>(sdBGidx.ukN);
 			uint64_t bkmerfindret,ukmerfindret;
-			bkmerfindret = Tfind_arrindexN<uint64_t>(bkmer_ptr, sdBGidx.p_branchedkmer, hashvalue_tmp,bit_para.kmer64Len);
+			bkmerfindret = Tfind_arrindexN<uint64_t>(sdBGidx.p2_bkmer, sdBGidx.p_branchedkmer, hashvalue_tmp,bit_para.kmer64Len);
 			if(bkmerfindret != ULLONG_MAX)
 			{
 				uint8_t adinfo = sdBGidx.p_branchedkmerad[bkmerfindret];
@@ -345,13 +343,7 @@ void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct 
 					if(adinfo & 0x01)
 					{
 						pnode->p_child[i] = (struct TPTnode *)malloc(sizeof(struct TPTnode));
-						pnode->p_child[i]->p_parent = pnode;
 						pnode->p_child[i]->offset = 0;
-						pnode->p_child[i]->level = pnode->level + 1;
-						for(uint32_t ii = 0 ; ii < 4; ii++)
-						{
-							pnode->p_child[i]->p_child[ii] = NULL;
-						}
 						switch(i)
 						{
 							case 0 :
@@ -365,16 +357,7 @@ void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct 
 							default:
 								pnode->p_child[i]->c = 'E';
 						}
-						calc_edarray(pnode->p_child[i], alignseq, tau);
-						pnode->p_child[i]->saarry = calc_SArangeChar(FMidx,pnode->saarry,pnode->p_child[i]->c);
-						for(uint32_t j = 0; j < 2*tau+1; j++)
-						{
-							if(pnode->p_child[i]->edarry[j] <= tau)
-							{
-								extflag = true;
-								break;
-							}
-						}
+						extflag = init_childnode(pnode->p_child[i], pnode, FMidx, alignseq, tau);
 						if(extflag == true)
 						{
 							ext_treenode(bit_para, pnode->p_child[i], sdBGidx, FMidx, dir, extlen-1, seqe, alignseq, tau);
@@ -388,7 +371,7 @@ void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct 
 					adinfo >>= 1;
 				}
 			}
-			ukmerfindret = Tfind_arrindexN<uint64_t>(ukmer_ptr, sdBGidx.p_unbranchedkmer, hashvalue_tmp,bit_para.kmer64Len);
+			ukmerfindret = Tfind_arrindexN<uint64_t>(sdBGidx.p2_ukmer, sdBGidx.p_unbranchedkmer, hashvalue_tmp,bit_para.kmer64Len);
 			if(ukmerfindret != ULLONG_MAX)//如果是unipath上的kmer  判断在unipath上的offset 根据是向出度方向还是入度方向扩展来找
 			{
 				uint32_t ukmerid = sdBGidx.p_unbranchedkmerid[ukmerfindret];
@@ -400,38 +383,17 @@ void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct 
 				{
 					ch = *(pos-1);
 					pnode->p_child[0] = (struct TPTnode *)malloc(sizeof(struct TPTnode));
-					pnode->p_child[0]->p_parent = pnode;
 					pnode->p_child[0]->offset = pnode->offset - 1;
 					pnode->p_child[0]->c = ch;
-					pnode->p_child[0]->level = pnode->level + 1;
-					for(uint32_t ii = 0 ; ii < 4; ii++)
-					{
-						pnode->p_child[0]->p_child[ii] = NULL;
-					}
 				}
 				else
 				{
 					ch = *(pos + strlen(seqe));
 					pnode->p_child[0] = (struct TPTnode *)malloc(sizeof(struct TPTnode));
-					pnode->p_child[0]->p_parent = pnode;
 					pnode->p_child[0]->offset = pnode->offset + 1;
 					pnode->p_child[0]->c = ch;
-					pnode->p_child[0]->level = pnode->level + 1;
-					for(uint32_t ii = 0 ; ii < 4; ii++)
-					{
-						pnode->p_child[0]->p_child[ii] = NULL;
-					}
 				}
-				calc_edarray(pnode->p_child[0], alignseq, tau);
-				pnode->p_child[0]->saarry = calc_SArangeChar(FMidx,pnode->saarry,pnode->p_child[0]->c);
-				for(uint32_t j = 0; j < 2*tau+1; j++)
-				{
-					if(pnode->p_child[0]->edarry[j] <= tau)
-					{
-						extflag = true;
-						break;
-					}
-				}
+				extflag = init_childnode(pnode->p_child[0], pnode, FMidx, alignseq, tau);
 				if(extflag == true)
 				{
 					ext_treenode(bit_para, pnode->p_child[0], sdBGidx, FMidx, dir, extlen-1, sdBGidx.upath_arr[ukmerid], alignseq, tau);

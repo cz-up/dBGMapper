@@ -961,6 +961,8 @@ void gen_dBG_index(struct dBG * p_dBG, struct para_dBGindex * p_sdBGidx, char * 
 	ByteCnt += sizeof(uint32_t) * 1;
 	fwrite(&ukN,sizeof(uint64_t),1,fp_dBGindex);
 	p_sdBGidx->ukN = ukN;
+	p_sdBGidx->p2_bkmer = Tgenerate_array<uint64_t>(p_sdBGidx->bkN);
+	p_sdBGidx->p2_ukmer = Tgenerate_array<uint64_t>(p_sdBGidx->ukN);
 	ByteCnt += sizeof(uint64_t) * 1;
 	cout << "ByteCnt:" << ByteCnt << endl;
 	cout << "unipath sequence fwrite done" << endl;
@@ -1188,6 +1190,14 @@ void free_dBGindex(struct para_dBGindex * p_sdBGidx)
 			p_sdBGidx->upath_arr[i] = NULL;
 		}
 		p_sdBGidx->upath_arr = NULL;
+	}
+	if(p_sdBGidx->p2_bkmer)
+	{
+		Tfree_genarray<uint64_t>(&p_sdBGidx->p2_bkmer);
+	}
+	if(p_sdBGidx->p2_ukmer)
+	{
+		Tfree_genarray<uint64_t>(&p_sdBGidx->p2_ukmer);
 	}
 }
 
