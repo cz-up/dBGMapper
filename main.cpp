@@ -65,20 +65,28 @@ int main(int argc, char** argv)
 
 	struct bit256KmerPara bit_para;
 	get_para(&bit_para,p_test.L);
+
 	uint32_t unitperkmer;
 	unitperkmer = bit_para.kmer64Len;
 //	char *kmer = "CCATGGCTGCTTTTCG";
 //	char *kmer = "CAGGCAGGGGCAGGTG";
 	struct TPTnode rootnode;
-	init_rootnode(&rootnode, kmertest, dir, &FMtmp, nFMidx, rFMidx, 2);
-	ext_treenode(bit_para, &rootnode, sdBGindex, FMtmp, dir,
-			extlen, kmertest, alignseq, 2);
+
+
+	struct ext_setting ext_set;
+	ext_set.dir = dir;
+	ext_set.alignseq = alignseq;
+	ext_set.tau = 2;
+	ext_set.extdone = false;
+	init_rootnode(&rootnode, kmertest, ext_set, &FMtmp, nFMidx, rFMidx);
+	struct ref_extpara ref_para;
+	ref_para.FMidx = FMtmp;
+	ref_para.sdBGidx = sdBGindex;
+	ref_para.bit_para = bit_para;
+	ext_treenode(ref_para, &rootnode, ext_set,kmertest,extlen);
 	cout << "ext_treenode finished!" << endl;
 	char *extseq = new char[6]();
-	struct seedext sedextest;
-	init_seedext(rootnode, &sedextest, kmertest);
-	cout << "init_seedext" << endl;
-	print_extree(rootnode, extseq, NULL);
+	print_extree(rootnode, extseq);
 	cout << endl;
 	cout << "print_extree done" << endl;
 //	calc_seedextpara(&sedextest, "CCAC" , 1, nFMidx, rFMidx, bd_para);

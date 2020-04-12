@@ -14,7 +14,6 @@
 #include "seeding.h"
 #include "Hash.h"
 #include "BPlusTree_full.h"
-#include "load_DBG_full.h"
 #include "basic.h"
 #include "method.h"
 
@@ -213,12 +212,13 @@ void calc_edarray(struct TPTnode *pnode, char *seq, uint8_t tau)
 //	cout << endl;
 }
 
-void init_rootnode(struct TPTnode *pnode, char *seq, char dir, sFMindex *pFMinx, sFMindex nFMidx, sFMindex rFMidx, uint8_t tau)
+void init_rootnode(struct TPTnode *pnode, char *seq, struct ext_setting ext_para, sFMindex *pFMinx, sFMindex nFMidx, sFMindex rFMidx)
 {
+	pnode->extdone = false;
 	pnode->c = 'R';
 	pnode->level = 0;
 	pnode->offset = 0;
-	pnode->edarry = (uint32_t*)malloc(sizeof(uint32_t)*(2*tau+1));
+	pnode->edarry = (uint32_t*)malloc(sizeof(uint32_t)*(2*ext_para.tau+1));
 	uint32_t i = 0;
 	pnode->p_parent = NULL;
 	for(i = 0 ; i < 4; i++)
@@ -226,23 +226,23 @@ void init_rootnode(struct TPTnode *pnode, char *seq, char dir, sFMindex *pFMinx,
 		pnode->p_child[i] = NULL;
 	}
 	i = 0;
-	for(; i < tau+1; i++)
+	for(; i < ext_para.tau+1; i++)
 	{
 		pnode->edarry[i] = 0;
 	}
 	int tmp = 0;
-	for(; i < 2*tau+1; i++)
+	for(; i < 2*ext_para.tau+1; i++)
 	{
 		pnode->edarry[i] = ++tmp;
 	}
 	char *tmpseq = (char *)malloc(sizeof(char)*(strlen(seq)+1));
 	memset(tmpseq,0,strlen(seq)+1);
 	strcpy(tmpseq,seq);
-	if(dir == 'I')
+	if(ext_para.dir == 'I')
 	{
 		*pFMinx = nFMidx;
 	}
-	if(dir == 'O')
+	if(ext_para.dir == 'O')
 	{
 		*pFMinx = rFMidx;
 		reverseq(tmpseq);
@@ -251,17 +251,17 @@ void init_rootnode(struct TPTnode *pnode, char *seq, char dir, sFMindex *pFMinx,
 	free(tmpseq);
 }
 
-bool init_childnode(struct TPTnode *pnodec, struct TPTnode *pnodep, sFMindex FMidx, char *alignseq, uint8_t tau)  //返回真表示继续扩展
+bool init_childnode(struct TPTnode *pnodec, struct TPTnode *pnodep, sFMindex FMidx, struct ext_setting ext_set)  //返回真表示继续扩展
 {
 	pnodec->p_parent = pnodep;
 	pnodec->level = pnodep->level + 1;
-	calc_edarray(pnodec, alignseq, tau);
+	calc_edarray(pnodec, ext_set.alignseq, ext_set.tau);
 	pnodec->saarry = calc_SArangeChar(FMidx,pnodep->saarry,pnodec->c);
-	if(pnodec->saarry[1] - pnodec->saarry[0])
+	if(pnodec->saarry[1] - pnodec->saarry[0] >= 0)
 	{
-		for(uint32_t i = 0; i < 2*tau+1; i++)
+		for(uint32_t i = 0; i < 2*ext_set.tau+1; i++)
 		{
-			if(pnodec->edarry[i] <= tau)
+			if(pnodec->edarry[i] <= ext_set.tau)
 			{
 				for(uint32_t ii = 0 ; ii < 4; ii++)
 				{
@@ -274,15 +274,15 @@ bool init_childnode(struct TPTnode *pnodec, struct TPTnode *pnodep, sFMindex FMi
 	return false;
 }
 
-void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct para_dBGindex sdBGidx, sFMindex FMidx,\
-		char dir, uint32_t extlen, char *seq, char *alignseq, uint8_t tau)
+void ext_treenode(struct ref_extpara ref_para, struct TPTnode *pnode,\
+		struct ext_setting ext_set, char *seq, uint32_t extlen)
 {
 	if(extlen != 0)
 	{
 		bool extflag = false;
-		if(pnode->offset != 0 && pnode->offset < strlen(seq) - bit_para.kmer1Len/2) //offset > 1?
+		if(pnode->offset != 0 && pnode->offset < strlen(seq) - ref_para.bit_para.kmer1Len/2) //offset > 1?
 		{
-			if(dir == 'I')
+			if(ext_set.dir == 'I')
 			{
 				pnode->p_child[0] = (struct TPTnode *)malloc(sizeof(struct TPTnode));
 				pnode->p_child[0]->offset = pnode->offset - 1;
@@ -292,12 +292,12 @@ void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct 
 			{
 				pnode->p_child[0] = (struct TPTnode *)malloc(sizeof(struct TPTnode));
 				pnode->p_child[0]->offset = pnode->offset + 1;
-				pnode->p_child[0]->c = seq[pnode->offset+bit_para.kmer1Len/2];
+				pnode->p_child[0]->c = seq[pnode->offset+ref_para.bit_para.kmer1Len/2];
 			}
-			extflag = init_childnode(pnode->p_child[0], pnode, FMidx, alignseq, tau);
+			extflag = init_childnode(pnode->p_child[0], pnode, ref_para.FMidx, ext_set);
 			if(extflag == true)
 			{
-				ext_treenode(bit_para, pnode->p_child[0], sdBGidx, FMidx, dir, extlen-1, seq, alignseq, tau);
+				ext_treenode(ref_para, pnode->p_child[0], ext_set, seq, extlen-1);
 			}
 			else
 			{
@@ -307,7 +307,7 @@ void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct 
 		}
 		else
 		{
-			uint64_t * const hashvalue_tmp = (uint64_t *)malloc(sizeof(uint64_t) * bit_para.kmer64Len);
+			uint64_t * const hashvalue_tmp = (uint64_t *)malloc(sizeof(uint64_t) * ref_para.bit_para.kmer64Len);
 			uint32_t seqlen = strlen(seq);
 			char *seqe = (char *)malloc(sizeof(char) * (seqlen+1));
 			memset(seqe,0,seqlen+1);
@@ -317,7 +317,7 @@ void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct 
 			}
 			else
 			{
-				if(dir == 'O')
+				if(ext_set.dir == 'O')
 				{
 					strncpy(seqe,seq+1,seqlen-1);
 					seqe[seqlen-1] = pnode->c;
@@ -328,13 +328,14 @@ void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct 
 					strncpy(seqe+1,seq,seqlen-1);
 				}
 			}
-			cal_hash_value_directly_256bit(seqe,hashvalue_tmp,bit_para);
+			cal_hash_value_directly_256bit(seqe,hashvalue_tmp,ref_para.bit_para);
 			uint64_t bkmerfindret,ukmerfindret;
-			bkmerfindret = Tfind_arrindexN<uint64_t>(sdBGidx.p2_bkmer, sdBGidx.p_branchedkmer, hashvalue_tmp,bit_para.kmer64Len);
+			bkmerfindret = Tfind_arrindexN<uint64_t>(ref_para.sdBGidx.p2_bkmer, ref_para.sdBGidx.p_branchedkmer, \
+					hashvalue_tmp,ref_para.bit_para.kmer64Len);
 			if(bkmerfindret != ULLONG_MAX)
 			{
-				uint8_t adinfo = sdBGidx.p_branchedkmerad[bkmerfindret];
-				if(dir == 'I')
+				uint8_t adinfo = ref_para.sdBGidx.p_branchedkmerad[bkmerfindret];
+				if(ext_set.dir == 'I')
 				{
 					adinfo >>= 4;
 				}
@@ -357,10 +358,10 @@ void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct 
 							default:
 								pnode->p_child[i]->c = 'E';
 						}
-						extflag = init_childnode(pnode->p_child[i], pnode, FMidx, alignseq, tau);
+						extflag = init_childnode(pnode->p_child[i], pnode, ref_para.FMidx, ext_set);
 						if(extflag == true)
 						{
-							ext_treenode(bit_para, pnode->p_child[i], sdBGidx, FMidx, dir, extlen-1, seqe, alignseq, tau);
+							ext_treenode(ref_para, pnode->p_child[i], ext_set, seqe, extlen-1);
 						}
 						else
 						{
@@ -371,15 +372,16 @@ void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct 
 					adinfo >>= 1;
 				}
 			}
-			ukmerfindret = Tfind_arrindexN<uint64_t>(sdBGidx.p2_ukmer, sdBGidx.p_unbranchedkmer, hashvalue_tmp,bit_para.kmer64Len);
+			ukmerfindret = Tfind_arrindexN<uint64_t>(ref_para.sdBGidx.p2_ukmer, ref_para.sdBGidx.p_unbranchedkmer, \
+					hashvalue_tmp,ref_para.bit_para.kmer64Len);
 			if(ukmerfindret != ULLONG_MAX)//如果是unipath上的kmer  判断在unipath上的offset 根据是向出度方向还是入度方向扩展来找
 			{
-				uint32_t ukmerid = sdBGidx.p_unbranchedkmerid[ukmerfindret];
+				uint32_t ukmerid = ref_para.sdBGidx.p_unbranchedkmerid[ukmerfindret];
 				char *pos = NULL;
-				pos = strstr(sdBGidx.upath_arr[ukmerid],seqe);
-				pnode->offset = pos - sdBGidx.upath_arr[ukmerid];
+				pos = strstr(ref_para.sdBGidx.upath_arr[ukmerid],seqe);
+				pnode->offset = pos - ref_para.sdBGidx.upath_arr[ukmerid];
 				char ch;
-				if(dir == 'I')
+				if(ext_set.dir == 'I')
 				{
 					ch = *(pos-1);
 					pnode->p_child[0] = (struct TPTnode *)malloc(sizeof(struct TPTnode));
@@ -393,10 +395,11 @@ void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct 
 					pnode->p_child[0]->offset = pnode->offset + 1;
 					pnode->p_child[0]->c = ch;
 				}
-				extflag = init_childnode(pnode->p_child[0], pnode, FMidx, alignseq, tau);
+				extflag = init_childnode(pnode->p_child[0], pnode, ref_para.FMidx, ext_set);
 				if(extflag == true)
 				{
-					ext_treenode(bit_para, pnode->p_child[0], sdBGidx, FMidx, dir, extlen-1, sdBGidx.upath_arr[ukmerid], alignseq, tau);
+					ext_treenode(ref_para, pnode->p_child[0], ext_set, ref_para.sdBGidx.upath_arr[ukmerid], extlen-1);
+
 				}
 				else
 				{
@@ -410,176 +413,12 @@ void ext_treenode(struct bit256KmerPara bit_para, struct TPTnode *pnode, struct 
 	}
 }
 
-//下面是seedext的使用
-void count_extnum(struct TPTnode node, struct seedext *p_seedext)
-{
-	if(node.p_child[0] == NULL && node.p_child[1] == NULL && node.p_child[2] == NULL && node.p_child[3] == NULL)
-	{
-		p_seedext->num++;
-	}
-	else
-	{
-		for(uint32_t i = 0; i < 4; i++)
-		{
-			if(node.p_child[i] != NULL)
-			{
-				count_extnum(*node.p_child[i], p_seedext);
-			}
-		}
-	}
-}
-
-void init_seedext(struct TPTnode node, struct seedext *p_seedext, char *seed)
-{
-	p_seedext->num = 0;
-	count_extnum(node, p_seedext);
-	p_seedext->seqext = (char**)malloc(sizeof(char*)*p_seedext->num);
-	p_seedext->num = 0;
-	p_seedext->seed = (char*)malloc(sizeof(char)*(strlen(seed)+1));
-	memset(p_seedext->seed,0,strlen(seed)+1);
-	strcpy(p_seedext->seed,seed);
-}
-
-void calc_seedextpara(struct seedext *p_seedext, char *calcseq, uint32_t tau, sFMindex n_index, sFMindex r_index)  //如果dir为I 需不需要将calcseq reverse
-{
-	if(calcseq != NULL && tau > 0)
-	{
-		uint32_t seedlen = strlen(p_seedext->seed);
-		uint32_t seqlen = strlen(calcseq);
-		p_seedext->p3_extedarr = (uint32_t ***)malloc(sizeof(uint32_t **) * p_seedext->num);
-		p_seedext->p2_extchcnt = (uint32_t **)malloc(sizeof(uint32_t*) * p_seedext->num);
-		uint32_t ** edmatrix;
-		for(uint32_t i = 0; i < p_seedext->num; i++)
-		{
-			uint32_t seedextlen = strlen(p_seedext->seqext[i]);
-			edmatrix = originalEd(calcseq,p_seedext->seqext[i],seqlen,seedextlen);
-			p_seedext->p3_extedarr[i] = (uint32_t **)malloc(sizeof(uint32_t *) * seedextlen);
-			char *seqtmp = (char *)malloc(sizeof(char) * (seedlen+seedextlen+1));
-			memset(seqtmp,0,seedlen+seedextlen+1);
-			char *p_seqpos = seqtmp;
-			p_seqpos += seedextlen;
-			if(p_seedext->dir == 'I')
-			{
-				strcpy(p_seqpos,p_seedext->seed);
-			}
-			if(p_seedext->dir == 'O')
-			{
-				char *seqrev = (char *)malloc(sizeof(char) * (seedlen+1));
-				strcpy(seqrev,p_seedext->seed);
-				reverseq(seqrev);
-				strcpy(p_seqpos,seqrev);
-				if(seqrev)
-				{
-					free(seqrev);
-					seqrev = NULL;
-				}
-			}
-			p_seqpos--;
-			p_seedext->p2_extchcnt[i] = (uint32_t *)malloc(sizeof(uint32_t) * seedextlen);
-			for(uint32_t j = 0; j < seedextlen; j++)
-			{
-				*p_seqpos = p_seedext->seqext[i][j];
-				cout << p_seqpos << endl;
-				uint32_t *p_sarry = NULL;
-				if(p_seedext->dir == 'I')
-				{
-					p_sarry = calc_SArangeSeq(n_index, p_seqpos); //暂时将build_para设为相同  如果需要设置不同的build_para再调整
-				}
-				if(p_seedext->dir == 'O')
-				{
-					p_sarry = calc_SArangeSeq(r_index, p_seqpos);
-				}
-				p_seedext->p2_extchcnt[i][j] = p_sarry[1] - p_sarry[0] + 1;
-				p_seqpos--;
-				if(p_sarry)
-				{
-					free(p_sarry);
-					p_sarry = NULL;
-				}
-				p_seedext->p3_extedarr[i][j] = (uint32_t *)malloc(sizeof(uint32_t) * (2*tau + 1));
-				for(uint32_t k = 0; k < 2*tau+1; k++)
-				{
-					if(k+j >= seqlen)
-					{
-						p_seedext->p3_extedarr[i][j][k] = edmatrix[seqlen][j+1];
-					}
-					else
-					{
-						p_seedext->p3_extedarr[i][j][k] = edmatrix[k+j+1][j+1];
-					}
-				}
-			}
-			free_edmatrix(&edmatrix, seqlen);
-			if(seqtmp)
-			{
-				free(seqtmp);
-				seqtmp = NULL;
-			}
-		}
-	}
-}
-
-void free_seedext(struct seedext *p_seedext)
-{
-	if(p_seedext)
-	{
-		if(p_seedext->seed)
-		{
-			free(p_seedext->seed);
-			p_seedext->seed = NULL;
-		}
-		if(p_seedext->p2_extchcnt)
-		{
-			for(uint32_t i = 0; i < p_seedext->num; i++)
-			{
-				free(p_seedext->p2_extchcnt[i]);
-				p_seedext->p2_extchcnt[i] = NULL;
-			}
-			free(p_seedext->p2_extchcnt);
-		}
-		if(p_seedext->p3_extedarr)
-		{
-			for(uint32_t i = 0; i < p_seedext->num; i++)
-			{
-				uint32_t seedlen = strlen(p_seedext->seqext[i]);
-				for(uint32_t j = 0; j < seedlen; j++)
-				{
-					free(p_seedext->p3_extedarr[i][j]);
-					p_seedext->p3_extedarr[i][j] = NULL;
-				}
-				free(p_seedext->p3_extedarr[i]);
-				p_seedext->p3_extedarr[i] = NULL;
-			}
-			free(p_seedext->p3_extedarr);
-			p_seedext->p3_extedarr = NULL;
-		}
-		if(p_seedext->seqext)
-		{
-			for(uint32_t i = 0; i < p_seedext->num; i++)
-			{
-				free(p_seedext->seqext[i]);
-				p_seedext->seqext[i] = NULL;
-
-			}
-			p_seedext->num = 0;
-			free(p_seedext->seqext);
-			p_seedext->seqext = NULL;
-		}
-	}
-}
-
-void print_extree(struct TPTnode node,char *seq, struct seedext *p_seedext)  //如果第三个参数为NULL 只打印extree
+void print_extree(struct TPTnode node,char *seq)  //如果第三个参数为NULL 只打印extree
 {
 	if(node.p_child[0] == NULL && node.p_child[1] == NULL && node.p_child[2] == NULL && node.p_child[3] == NULL)
 	{
 		seq[strlen(seq)] = node.c;
 		printf("%s",seq);
-		if(p_seedext != NULL)
-		{
-			p_seedext->seqext[p_seedext->num] = (char*)malloc(sizeof(char)*strlen(seq));
-			memset(p_seedext->seqext[p_seedext->num],0,strlen(seq));
-			strncpy(p_seedext->seqext[p_seedext->num++],seq+1,strlen(seq));
-		}
 		seq[strlen(seq)-1] = '\0';
 	}
 	else
@@ -589,7 +428,7 @@ void print_extree(struct TPTnode node,char *seq, struct seedext *p_seedext)  //�
 			if(node.p_child[i] != NULL)
 			{
 				seq[strlen(seq)] = node.c;
-				print_extree(*node.p_child[i],seq,p_seedext);
+				print_extree(*node.p_child[i],seq);
 				seq[strlen(seq)-1] = '\0';
 			}
 		}
