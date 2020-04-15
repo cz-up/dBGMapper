@@ -73,17 +73,23 @@ int main(int argc, char** argv)
 	struct TPTnode rootnode;
 
 
-	struct ext_setting ext_set;
+	struct seed_extpara ext_set;
+	bool unipathflag = false;
 	ext_set.dir = dir;
 	ext_set.alignseq = alignseq;
 	ext_set.tau = 2;
-	ext_set.extdone = false;
-	init_rootnode(&rootnode, kmertest, ext_set, &FMtmp, nFMidx, rFMidx);
-	struct ref_extpara ref_para;
-	ref_para.FMidx = FMtmp;
-	ref_para.sdBGidx = sdBGindex;
-	ref_para.bit_para = bit_para;
-	ext_treenode(ref_para, &rootnode, ext_set,kmertest,extlen);
+	ext_set.bit_para = bit_para;
+	ext_set.sdBGidx = sdBGindex;
+	if(ext_set.dir == 'I')
+	{
+		ext_set.FMidx = nFMidx;
+	}
+	if(ext_set.dir == 'O')
+	{
+		ext_set.FMidx = rFMidx;
+	}
+	init_rootnode(&rootnode, ext_set, kmertest);
+	ext_treenode(ext_set, &rootnode, kmertest,extlen, &unipathflag);
 	cout << "ext_treenode finished!" << endl;
 	char *extseq = new char[6]();
 	print_extree(rootnode, extseq);

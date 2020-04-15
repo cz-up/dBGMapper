@@ -212,7 +212,7 @@ void calc_edarray(struct TPTnode *pnode, char *seq, uint8_t tau)
 //	cout << endl;
 }
 
-void init_rootnode(struct TPTnode *pnode, char *seq, struct ext_setting ext_para, sFMindex *pFMinx, sFMindex nFMidx, sFMindex rFMidx)
+void init_rootnode(struct TPTnode *pnode,struct seed_extpara ext_para, char *seq)
 {
 	pnode->extdone = false;
 	pnode->c = 'R';
@@ -238,30 +238,25 @@ void init_rootnode(struct TPTnode *pnode, char *seq, struct ext_setting ext_para
 	char *tmpseq = (char *)malloc(sizeof(char)*(strlen(seq)+1));
 	memset(tmpseq,0,strlen(seq)+1);
 	strcpy(tmpseq,seq);
-	if(ext_para.dir == 'I')
-	{
-		*pFMinx = nFMidx;
-	}
 	if(ext_para.dir == 'O')
 	{
-		*pFMinx = rFMidx;
 		reverseq(tmpseq);
 	}
-	pnode->saarry = calc_SArangeSeq(*pFMinx,tmpseq);
+	pnode->saarry = calc_SArangeSeq(ext_para.FMidx,tmpseq);
 	free(tmpseq);
 }
 
-bool init_childnode(struct TPTnode *pnodec, struct TPTnode *pnodep, sFMindex FMidx, struct ext_setting ext_set)  //返回真表示继续扩展
+bool init_childnode(struct seed_extpara ext_para, struct TPTnode *pnodec, struct TPTnode *pnodep)  //返回真表示继续扩展
 {
 	pnodec->p_parent = pnodep;
 	pnodec->level = pnodep->level + 1;
-	calc_edarray(pnodec, ext_set.alignseq, ext_set.tau);
-	pnodec->saarry = calc_SArangeChar(FMidx,pnodep->saarry,pnodec->c);
+	calc_edarray(pnodec, ext_para.alignseq, ext_para.tau);
+	pnodec->saarry = calc_SArangeChar(ext_para.FMidx,pnodep->saarry,pnodec->c);
 	if(pnodec->saarry[1] - pnodec->saarry[0] >= 0)
 	{
-		for(uint32_t i = 0; i < 2*ext_set.tau+1; i++)
+		for(uint32_t i = 0; i < 2*ext_para.tau+1; i++)
 		{
-			if(pnodec->edarry[i] <= ext_set.tau)
+			if(pnodec->edarry[i] <= ext_para.tau)
 			{
 				for(uint32_t ii = 0 ; ii < 4; ii++)
 				{
@@ -274,15 +269,15 @@ bool init_childnode(struct TPTnode *pnodec, struct TPTnode *pnodep, sFMindex FMi
 	return false;
 }
 
-void ext_treenode(struct ref_extpara ref_para, struct TPTnode *pnode,\
-		struct ext_setting ext_set, char *seq, uint32_t extlen)
+void ext_treenode(struct seed_extpara ref_para, struct TPTnode *pnode,\
+		char *seq, uint32_t extlen, bool *ponunipath)
 {
 	if(extlen != 0)
 	{
 		bool extflag = false;
-		if(pnode->offset != 0 && pnode->offset < strlen(seq) - ref_para.bit_para.kmer1Len/2) //offset > 1?
+		if(pnode->offset > 0 && pnode->offset < strlen(seq) - ref_para.bit_para.kmer1Len/2) //offset > 1?
 		{
-			if(ext_set.dir == 'I')
+			if(ref_para.dir == 'I')
 			{
 				pnode->p_child[0] = (struct TPTnode *)malloc(sizeof(struct TPTnode));
 				pnode->p_child[0]->offset = pnode->offset - 1;
@@ -294,10 +289,11 @@ void ext_treenode(struct ref_extpara ref_para, struct TPTnode *pnode,\
 				pnode->p_child[0]->offset = pnode->offset + 1;
 				pnode->p_child[0]->c = seq[pnode->offset+ref_para.bit_para.kmer1Len/2];
 			}
-			extflag = init_childnode(pnode->p_child[0], pnode, ref_para.FMidx, ext_set);
+			extflag = init_childnode(ref_para, pnode->p_child[0], pnode);
 			if(extflag == true)
 			{
-				ext_treenode(ref_para, pnode->p_child[0], ext_set, seq, extlen-1);
+				*ponunipath = true;
+				ext_treenode(ref_para, pnode->p_child[0], seq, extlen-1, ponunipath);
 			}
 			else
 			{
@@ -308,7 +304,7 @@ void ext_treenode(struct ref_extpara ref_para, struct TPTnode *pnode,\
 		else
 		{
 			uint64_t * const hashvalue_tmp = (uint64_t *)malloc(sizeof(uint64_t) * ref_para.bit_para.kmer64Len);
-			uint32_t seqlen = strlen(seq);
+			uint32_t seqlen = ref_para.bit_para.kmer1Len/2;
 			char *seqe = (char *)malloc(sizeof(char) * (seqlen+1));
 			memset(seqe,0,seqlen+1);
 			if(pnode->c == 'R')
@@ -317,15 +313,22 @@ void ext_treenode(struct ref_extpara ref_para, struct TPTnode *pnode,\
 			}
 			else
 			{
-				if(ext_set.dir == 'O')
+				if(true == *ponunipath)
 				{
-					strncpy(seqe,seq+1,seqlen-1);
-					seqe[seqlen-1] = pnode->c;
+					strncpy(seqe,seq+pnode->offset,seqlen);
 				}
 				else
 				{
-					seqe[0] = pnode->c;
-					strncpy(seqe+1,seq,seqlen-1);
+					if(ref_para.dir == 'I')
+					{
+						seqe[0] = pnode->c;
+						strncpy(seqe+1,seq,seqlen-1);
+					}
+					else
+					{
+						strncpy(seqe,seq+1,seqlen-1);
+						seqe[seqlen-1] = pnode->c;
+					}
 				}
 			}
 			cal_hash_value_directly_256bit(seqe,hashvalue_tmp,ref_para.bit_para);
@@ -335,7 +338,7 @@ void ext_treenode(struct ref_extpara ref_para, struct TPTnode *pnode,\
 			if(bkmerfindret != ULLONG_MAX)
 			{
 				uint8_t adinfo = ref_para.sdBGidx.p_branchedkmerad[bkmerfindret];
-				if(ext_set.dir == 'I')
+				if(ref_para.dir == 'I')
 				{
 					adinfo >>= 4;
 				}
@@ -358,10 +361,11 @@ void ext_treenode(struct ref_extpara ref_para, struct TPTnode *pnode,\
 							default:
 								pnode->p_child[i]->c = 'E';
 						}
-						extflag = init_childnode(pnode->p_child[i], pnode, ref_para.FMidx, ext_set);
+						extflag = init_childnode(ref_para, pnode->p_child[i], pnode);
 						if(extflag == true)
 						{
-							ext_treenode(ref_para, pnode->p_child[i], ext_set, seqe, extlen-1);
+							*ponunipath = false;
+							ext_treenode(ref_para, pnode->p_child[i], seqe, extlen-1, ponunipath);
 						}
 						else
 						{
@@ -381,7 +385,7 @@ void ext_treenode(struct ref_extpara ref_para, struct TPTnode *pnode,\
 				pos = strstr(ref_para.sdBGidx.upath_arr[ukmerid],seqe);
 				pnode->offset = pos - ref_para.sdBGidx.upath_arr[ukmerid];
 				char ch;
-				if(ext_set.dir == 'I')
+				if(ref_para.dir == 'I')
 				{
 					ch = *(pos-1);
 					pnode->p_child[0] = (struct TPTnode *)malloc(sizeof(struct TPTnode));
@@ -395,10 +399,11 @@ void ext_treenode(struct ref_extpara ref_para, struct TPTnode *pnode,\
 					pnode->p_child[0]->offset = pnode->offset + 1;
 					pnode->p_child[0]->c = ch;
 				}
-				extflag = init_childnode(pnode->p_child[0], pnode, ref_para.FMidx, ext_set);
+				extflag = init_childnode(ref_para, pnode->p_child[0], pnode);
 				if(extflag == true)
 				{
-					ext_treenode(ref_para, pnode->p_child[0], ext_set, ref_para.sdBGidx.upath_arr[ukmerid], extlen-1);
+					*ponunipath = true;
+					ext_treenode(ref_para, pnode->p_child[0], ref_para.sdBGidx.upath_arr[ukmerid], extlen-1, ponunipath);
 
 				}
 				else

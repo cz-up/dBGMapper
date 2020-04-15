@@ -28,19 +28,14 @@ struct seed
 	uint32_t seed_total_num;
 };
 
-struct ref_extpara
-{
-	struct bit256KmerPara bit_para;
-	struct para_dBGindex sdBGidx;
-	struct sFMindex FMidx;
-};
-
-struct ext_setting
+struct seed_extpara
 {
 	char dir;
 	char *alignseq;
 	uint8_t tau;
-	bool extdone;
+	struct bit256KmerPara bit_para;
+	struct para_dBGindex sdBGidx;
+	struct sFMindex FMidx;
 };
 
 struct TPTnode
@@ -48,15 +43,16 @@ struct TPTnode
 	bool extdone;
 	char c;
 	uint8_t level;
-	uint8_t offset;			//假设unipath最大长度不超过255   统计如果大于255  改为uint16_t
+	uint16_t offset;			//假设unipath最大长度不超过255   统计如果大于255  改为uint16_t
 	struct TPTnode * p_parent;
 	struct TPTnode * p_child[4];
 	uint32_t * edarry;
 	uint32_t * saarry;
 };
 
-void init_rootnode(struct TPTnode *pnode, char *seq, struct ext_setting ext_para, sFMindex *pFMinx, sFMindex nFMidx, sFMindex rFMidx);
-void ext_treenode(struct ref_extpara ref_para, struct TPTnode *pnode,struct ext_setting ext_set, char *seq, uint32_t extlen);
+void init_rootnode(struct TPTnode *pnode,struct seed_extpara ext_para, char *seq);
+void ext_treenode(struct seed_extpara ref_para, struct TPTnode *pnode,\
+		char *seq, uint32_t extlen, bool *ponunipath);
 void print_extree(struct TPTnode node,char *seq);
 void destory_extree(struct TPTnode *pnode);
 
