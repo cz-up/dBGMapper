@@ -40,21 +40,13 @@ struct para_dBGindex
 	uint64_t **p2_ukmer;
 };
 
-void calc_onesinchar(uint8_t in,uint64_t &num);
-void loadDbg_full(struct dBG * p_dBG, char * p_dbg_path);
-void merge_superunipath(struct dBG * p_dBG, char * p_dbg_path);
-void test_lendis(struct dBG * p_dBG, char * p_dbg_path, int unidivnum);
-void test_kmernum(struct dBG * p_dBG, char * p_dbg_path);
-void Gen_unipathLenInf(struct dBG * p_dBG, char * p_dbg_path);
 void Save_ukmer(struct dBG * p_dBG, char * p_dbg_path);
 void Divid_umers(struct dBG * p_dBG,char * p_dbg_path);
 void SortA_umers(struct dBG * p_dBG,char * p_dbg_path,uint32_t thread_num);
 void SortFile_umers(struct dBG * p_dBG,char * p_file_path,uint32_t thread_num);
 void Gen_navigatSeq(struct dBG * p_dBG, char * p_dbg_path);
-void gen_dBG_index(struct dBG * p_dBG, struct para_dBGindex * p_sdBGidx, char * p_dbg_path, uint32_t thread_num);
+void gen_dBG_index(struct bit256KmerPara bit_para, struct para_dBGindex * p_sdBGidx, char * p_dbg_path, uint32_t thread_num);
 void free_dBGindex(struct para_dBGindex * p_sdBGidx);
-void test_2MethodRate(struct dBG * p_dBG, char * p_file_path);
-void test_sortprog(char * p_prim_path,char *p_sort_path);
 
 
 #endif /* LOAD_DBG_FULL_H_ */

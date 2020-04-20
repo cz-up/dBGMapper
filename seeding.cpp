@@ -252,7 +252,7 @@ bool init_childnode(struct seed_extpara ext_para, struct TPTnode *pnodec, struct
 	pnodec->level = pnodep->level + 1;
 	calc_edarray(pnodec, ext_para.alignseq, ext_para.tau);
 	pnodec->saarry = calc_SArangeChar(ext_para.FMidx,pnodep->saarry,pnodec->c);
-	if(pnodec->saarry[1] - pnodec->saarry[0] >= 0)
+	if(pnodec->saarry[1] >= pnodec->saarry[0])
 	{
 		for(uint32_t i = 0; i < 2*ext_para.tau+1; i++)
 		{

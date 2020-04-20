@@ -60,19 +60,17 @@ int main(int argc, char** argv)
 
 	cout <<"start..."<<endl;
 
-	struct para_dBGindex sdBGindex;
-	gen_dBG_index(&p_test, &sdBGindex, p_dbg_path,1);
-
 	struct bit256KmerPara bit_para;
 	get_para(&bit_para,p_test.L);
+	struct para_dBGindex sdBGindex;
+	gen_dBG_index(bit_para, &sdBGindex, p_dbg_path,1);
+
 
 	uint32_t unitperkmer;
 	unitperkmer = bit_para.kmer64Len;
 //	char *kmer = "CCATGGCTGCTTTTCG";
 //	char *kmer = "CAGGCAGGGGCAGGTG";
 	struct TPTnode rootnode;
-
-
 	struct seed_extpara ext_set;
 	bool unipathflag = false;
 	ext_set.dir = dir;

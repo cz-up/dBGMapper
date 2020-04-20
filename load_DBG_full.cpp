@@ -793,10 +793,9 @@ void Gen_navigatSeq(struct dBG * p_dBG, char * p_dbg_path)
 	free(bkmer_array);
 }
 
-void gen_dBG_index(struct dBG * p_dBG, struct para_dBGindex * p_sdBGidx, char * p_dbg_path, uint32_t thread_num)	//用CDBGO生成的文件生成一个整体的dBG index
+void gen_dBG_index(struct bit256KmerPara bit_para, struct para_dBGindex * p_sdBGidx, char * p_dbg_path, uint32_t thread_num)	//用CDBGO生成的文件生成一个整体的dBG index
 {
-	struct bit256KmerPara bit_para;
-	get_para(&bit_para,p_dBG->L);
+	uint32_t kmerL = bit_para.kmer1Len / 2;
 	uint32_t unitperkmer;
 	unitperkmer = bit_para.kmer64Len;
 	cout << "unitperkmer : " << unitperkmer << endl;
@@ -850,7 +849,7 @@ void gen_dBG_index(struct dBG * p_dBG, struct para_dBGindex * p_sdBGidx, char * 
 		p_name++;
 	}
 	uint64_t ByteCnt = 0;
-	sprintf(dBG_index_name,"%s_%d_%s",ref_name,p_dBG->L,"index");
+	sprintf(dBG_index_name,"%s_%d_%s",ref_name,kmerL,"index");
 	FILE * fp_dBGindex;
 	fp_dBGindex = fopen(dBG_index_name,"wb");
 	fwrite(&kBN,sizeof(uint64_t),1,fp_dBGindex);
@@ -930,7 +929,7 @@ void gen_dBG_index(struct dBG * p_dBG, struct para_dBGindex * p_sdBGidx, char * 
 			ReadSeq(&p_ref,&ref_len,p_dbg_file[cur_ref_id+3]);
 		}
 		uint32_t cur_unipath_knum = cur_struct_unipath_tmp.len;
-		uint32_t cur_unipath_len = (cur_struct_unipath_tmp.len + p_dBG->L-1);
+		uint32_t cur_unipath_len = (cur_struct_unipath_tmp.len + kmerL-1);
 		char * p_char_tmp;
 		p_char_tmp = p_ref+cur_struct_unipath_tmp.start;
 		p_unipath_tmp = (char *)malloc(sizeof(char)*cur_unipath_len+3);
@@ -938,7 +937,7 @@ void gen_dBG_index(struct dBG * p_dBG, struct para_dBGindex * p_sdBGidx, char * 
 		strncpy(p_unipath_tmp,p_char_tmp-1,cur_unipath_len+2);
 		p_sdBGidx->upath_arr[i] = p_unipath_tmp;
 //		fwrite(&cur_unipath_len,sizeof(uint32_t),1,fp_dBGindex);   不需要存  strlen
-		ByteCnt += sizeof(uint32_t) * 1;
+//		ByteCnt += sizeof(uint32_t) * 1;
 		fwrite(p_unipath_tmp,sizeof(char),cur_unipath_len+2,fp_dBGindex);
 		ByteCnt += sizeof(char) * strlen(p_unipath_tmp);
 //		free(p_unipath_tmp);
@@ -961,9 +960,9 @@ void gen_dBG_index(struct dBG * p_dBG, struct para_dBGindex * p_sdBGidx, char * 
 	ByteCnt += sizeof(uint32_t) * 1;
 	fwrite(&ukN,sizeof(uint64_t),1,fp_dBGindex);
 	p_sdBGidx->ukN = ukN;
+	ByteCnt += sizeof(uint64_t) * 1;
 	p_sdBGidx->p2_bkmer = Tgenerate_array<uint64_t>(p_sdBGidx->bkN);
 	p_sdBGidx->p2_ukmer = Tgenerate_array<uint64_t>(p_sdBGidx->ukN);
-	ByteCnt += sizeof(uint64_t) * 1;
 	cout << "ByteCnt:" << ByteCnt << endl;
 	cout << "unipath sequence fwrite done" << endl;
 
@@ -1201,100 +1200,13 @@ void free_dBGindex(struct para_dBGindex * p_sdBGidx)
 	}
 }
 
-void test_sortprog(char * p_orederd_path,char *p_test_path)
+void load_dBG_index(struct bit256KmerPara bit_para, struct para_dBGindex * p_sdBGidx, char * p_dbg_index)	//load dBG index 后续工作...
 {
-	uint64_t fileByteo;
-	FILE* fp_orederedkmer_file;
-	fp_orederedkmer_file = fopen(p_orederd_path,"rb");
-	fseek(fp_orederedkmer_file,0,2);
-	fileByteo = ftell(fp_orederedkmer_file);
-	fseek(fp_orederedkmer_file,0,0);
-	uint64_t * pkmer_array = NULL;
-	pkmer_array = (uint64_t *)malloc(fileByteo);
-	fread(pkmer_array,fileByteo,1,fp_orederedkmer_file);
-	fclose(fp_orederedkmer_file);
-
-	uint64_t fileBytet;
-	FILE* fp_testingkmer_kmer_file;
-	fp_testingkmer_kmer_file = fopen(p_test_path,"rb");
-	fseek(fp_testingkmer_kmer_file,0,2);
-	fileBytet = ftell(fp_testingkmer_kmer_file);
-	fseek(fp_testingkmer_kmer_file,0,0);
-	uint64_t * tkmer_array = NULL;
-	tkmer_array = (uint64_t *)malloc(fileBytet);
-	fread(tkmer_array,fileBytet,1,fp_testingkmer_kmer_file);
-	fclose(fp_testingkmer_kmer_file);
-	uint64_t * t_array = tkmer_array;
-
-	uint32_t kmernumo = fileByteo / sizeof(uint64_t);
-	uint32_t kmernumt = fileBytet / sizeof(uint64_t);
-
-	cout << "kmernumo:" << kmernumo << endl;
-	cout << "kmernumt:" << kmernumt << endl;
-	uint32_t **bkmer_ptr;
-	bkmer_ptr = generate_array(kmernumo, 0);
-
-	uint32_t errcnt = 0, ret;
-	for(uint32_t i = 0; i < kmernumt; i++)
-	{
-//		ret = find_arrindex(bkmer_ptr, bkmer_array, *p_array);
-		ret = find_arrindexN(bkmer_ptr, pkmer_array, t_array, 1);
-		if(ret == UINT_MAX)
-		{
-			errcnt++;
-		}
-		t_array++;
-	}
-	printf("%s not exist in %s num : %d\n",p_test_path,p_orederd_path,errcnt);
-
-	uint64_t *ptr1,*ptr2;
-	uint32_t equal_cnt = 0,bigger_cnt = 0;
-	ptr1 = pkmer_array;
-	ptr2 = pkmer_array + 1;
-	while(1)
-	{
-		if(ptr2 == pkmer_array + kmernumo)
-		{
-			break;
-		}
-		if(cmp256BitKmer(ptr1,ptr2,1)==0)
-		{
-			ptr1++;
-			ptr2++;
-		}
-		else
-		{
-			if(cmp256BitKmer(ptr1,ptr2,1)==1)
-			{
-				bigger_cnt++;
-				cout << ptr1 - pkmer_array << endl;
-			}
-			else
-			{
-				equal_cnt++;
-				cout << ptr1 - pkmer_array << endl;
-			}
-			ptr1++;
-			ptr2++;
-		}
-
-	}
-	printf("%s bigger num:%d  equal num : %d\n",p_orederd_path, bigger_cnt, equal_cnt);
-	free_genarray(&bkmer_ptr);
-	free(tkmer_array);
-	free(pkmer_array);
-}
-
-void load_dBG_index(struct dBG * p_dBG, char * p_dbg_index)	//load dBG index 后续工作...
-{
-	struct bit256KmerPara bit_para;
-	get_para(&bit_para,p_dBG->L);
-	uint32_t unitperkmer;
-	unitperkmer = bit_para.kmer64Len;
-	cout << "unitperkmer : " << unitperkmer << endl;
-
 	FILE * fp_dBGindex;
 	fp_dBGindex = fopen(p_dbg_index,"rb");
 	uint64_t kBN;
-	fread(&kBN,sizeof(uint64_t),1,fp_dBGindex);
+	fread(&p_sdBGidx->bkN,sizeof(uint64_t),1,fp_dBGindex);
+	p_sdBGidx->p_branchedkmer = (uint64_t *)malloc(sizeof(uint64_t) * kBN);
+	fread(p_sdBGidx->p_branchedkmer,sizeof(uint64_t)*bit_para.kmer64Len,kBN,fp_dBGindex);
+	fwrite(p_sdBGidx->p_branchedkmerad,sizeof(uint8_t),kBN,fp_dBGindex);
 }
