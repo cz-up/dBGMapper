@@ -418,12 +418,12 @@ void ext_treenode(struct seed_extpara ref_para, struct TPTnode *pnode,\
 	}
 }
 
-void print_extree(struct TPTnode node,char *seq)  //如果第三个参数为NULL 只打印extree
+void print_extree(struct TPTnode node,char *seq)
 {
 	if(node.p_child[0] == NULL && node.p_child[1] == NULL && node.p_child[2] == NULL && node.p_child[3] == NULL)
 	{
 		seq[strlen(seq)] = node.c;
-		printf("%s",seq);
+		printf("%s\n",seq);
 		seq[strlen(seq)-1] = '\0';
 	}
 	else
@@ -434,6 +434,31 @@ void print_extree(struct TPTnode node,char *seq)  //如果第三个参数为NULL
 			{
 				seq[strlen(seq)] = node.c;
 				print_extree(*node.p_child[i],seq);
+				seq[strlen(seq)-1] = '\0';
+			}
+		}
+	}
+}
+
+void print_specificlen(struct TPTnode node,struct seed_extpara ext_set, uint32_t extlen, char *seq)
+{
+	if(node.p_child[0] == NULL && node.p_child[1] == NULL && node.p_child[2] == NULL && node.p_child[3] == NULL)
+	{
+		seq[strlen(seq)] = node.c;
+		if(node.level >= extlen - ext_set.tau && node.level <= extlen + ext_set.tau)
+		{
+			printf("%s\n",seq);
+		}
+		seq[strlen(seq)-1] = '\0';
+	}
+	else
+	{
+		for(uint32_t i = 0; i < 4; i++)
+		{
+			if(node.p_child[i] != NULL)
+			{
+				seq[strlen(seq)] = node.c;
+				print_specificlen(*node.p_child[i], ext_set, extlen, seq);
 				seq[strlen(seq)-1] = '\0';
 			}
 		}

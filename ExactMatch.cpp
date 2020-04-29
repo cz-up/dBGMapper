@@ -120,7 +120,7 @@ uint32_t LF_Mapping_l(sFMindex mem,char c,uint32_t pos)
 uint32_t LF_Mapping_h(sFMindex mem,char c,uint32_t pos)
 {
 	//last first mapping
-//	return calc_C(mem,c) + calc_OCC(mem,para,c,pos) + 1 - 1;
+//	return calc_C(mem,c) + calc_OCC(mem,c,pos) + 1 - 1;
 	return calc_C(mem,c) + calc_OCC(mem,c,pos+1);
 }
 
@@ -130,8 +130,13 @@ uint32_t* calc_SArangeSeq(sFMindex mem,char *read)
 {
 	char ch;
 	int32_t i = strlen(read) - 1;
-	ch = read[i];
 	uint32_t *p = (uint32_t *)malloc(sizeof(uint32_t)*2);
+	if(0 > i)
+	{
+		p[0] = p[1] = 0;
+		return p;
+	}
+	ch = read[i];
 	p[0] = calc_C(mem,ch) + 1;
 	p[1] = calc_C(mem,C_next(ch)) + 1;
 	i--;

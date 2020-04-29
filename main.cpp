@@ -21,6 +21,7 @@ int main(int argc, char** argv)
 	struct dBG p_test;
 	uint32_t extlen;
 	char dir;
+	uint32_t tau;
 	for(uint32_t i=1;i<argc;i=i+2)
 	{
 		if(argv[i][0]=='-'&&argv[i][1]=='r')//reference
@@ -47,13 +48,17 @@ int main(int argc, char** argv)
 		{
 			alignseq = argv[i+1];
 		}
+		if(argv[i][0]=='-'&&argv[i][1]=='t')//reference
+		{
+			tau = atoi(argv[i+1]);
+		}
 
 	}
-//	struct timeval tvs,tve;
-//	gettimeofday(&tvs,NULL);
+	struct timeval tvs,tve;
+	gettimeofday(&tvs,NULL);
 	char nindex[] = "./nindex";
 	char rindex[] = "./rindex";
-	struct sFMindex nFMidx,rFMidx,FMtmp;
+	struct sFMindex nFMidx,rFMidx;
 	struct build_para bd_para;
 	read_bfile2index(nindex,&nFMidx,0);
 	read_bfile2index(rindex,&rFMidx,0);
@@ -65,7 +70,6 @@ int main(int argc, char** argv)
 	struct para_dBGindex sdBGindex;
 	gen_dBG_index(bit_para, &sdBGindex, p_dbg_path,1);
 
-
 	uint32_t unitperkmer;
 	unitperkmer = bit_para.kmer64Len;
 //	char *kmer = "CCATGGCTGCTTTTCG";
@@ -75,7 +79,7 @@ int main(int argc, char** argv)
 	bool unipathflag = false;
 	ext_set.dir = dir;
 	ext_set.alignseq = alignseq;
-	ext_set.tau = 2;
+	ext_set.tau = tau;
 	ext_set.bit_para = bit_para;
 	ext_set.sdBGidx = sdBGindex;
 	if(ext_set.dir == 'I')
@@ -87,12 +91,14 @@ int main(int argc, char** argv)
 		ext_set.FMidx = rFMidx;
 	}
 	init_rootnode(&rootnode, ext_set, kmertest);
-	ext_treenode(ext_set, &rootnode, kmertest,extlen, &unipathflag);
+	ext_treenode(ext_set, &rootnode, kmertest,extlen+tau, &unipathflag);
 	cout << "ext_treenode finished!" << endl;
-	char *extseq = new char[6]();
+	char *extseq = new char[extlen+2]();
 	print_extree(rootnode, extseq);
-	cout << endl;
-	cout << "print_extree done" << endl;
+	cout << "print_extree done!\n";
+	char *seedseq = new char[extlen+2]();
+	print_specificlen(rootnode, ext_set, extlen, seedseq);
+	cout << "print_specificlen done!\n";
 //	calc_seedextpara(&sedextest, "CCAC" , 1, nFMidx, rFMidx, bd_para);
 //	for(uint32_t i = 0; i < strlen(sedextest.seqext[0]); i++)
 //	{
@@ -115,7 +121,7 @@ int main(int argc, char** argv)
 //	free_seedext(&sedextest);
 //	cout << "free_seedext" << endl;
 //	cout << "print_extree finished" << endl;
-//	destory_extree(&rootnode);
+	destory_extree(&rootnode);
 //	cout << "destory_extree finished!" << endl;
 	cout << "gen dBG over" << endl;
 	free_dBGindex(&sdBGindex);
@@ -124,9 +130,9 @@ int main(int argc, char** argv)
 	char *funname = "gen_dBG_index";
 
 	cout << "end..."<< endl;
-//	gettimeofday(&tve,NULL);
-//	double span = tve.tv_sec-tvs.tv_sec + (tve.tv_usec-tvs.tv_usec)/1000000.0;
-//	cout << funname  << " time is: "<< span << endl;
+	gettimeofday(&tve,NULL);
+	double span = tve.tv_sec-tvs.tv_sec + (tve.tv_usec-tvs.tv_usec)/1000000.0;
+	cout << "time is: "<< span << endl;
 
 	printf("%s is over!\n",funname);
 //	getchar();

@@ -811,7 +811,7 @@ void gen_dBG_index(struct bit256KmerPara bit_para, struct para_dBGindex * p_sdBG
 	FILE* fp_branched_kmer_file;
 	fp_branched_kmer_file = fopen(p_dbg_file[0],"rb");
 	fseek(fp_branched_kmer_file,0,2);
-	kBN = ftell(fp_branched_kmer_file)/(sizeof(uint64_t)*bit_para.kmer64Len);
+	kBN = ftell(fp_branched_kmer_file)/(sizeof(uint64_t)*unitperkmer);
 	fseek(fp_branched_kmer_file,0,0);
 
 	uint64_t kBaN;
@@ -823,7 +823,7 @@ void gen_dBG_index(struct bit256KmerPara bit_para, struct para_dBGindex * p_sdBG
 	if(kBN != kBaN)
 	{
 		cout << p_dbg_file[0] << " kmer number mismatch " << p_dbg_file[1] << endl;
-		exit(1);
+		exit(1);   //return ?
 	}
 	uint64_t *p_branchedkmer = NULL;
 	p_branchedkmer = (uint64_t *)malloc(sizeof(uint64_t) * kBN);
@@ -855,9 +855,9 @@ void gen_dBG_index(struct bit256KmerPara bit_para, struct para_dBGindex * p_sdBG
 	fwrite(&kBN,sizeof(uint64_t),1,fp_dBGindex);
 	p_sdBGidx->bkN = kBN;
 	ByteCnt += sizeof(uint64_t) * 1;
-	fwrite(p_branchedkmer,sizeof(uint64_t)*bit_para.kmer64Len,kBN,fp_dBGindex);
+	fwrite(p_branchedkmer,sizeof(uint64_t)*unitperkmer,kBN,fp_dBGindex);
 	p_sdBGidx->p_branchedkmer = p_branchedkmer;
-	ByteCnt += sizeof(uint64_t)*bit_para.kmer64Len * kBN;
+	ByteCnt += sizeof(uint64_t) * unitperkmer * kBN;
 	fwrite(p_branchedkmerad,sizeof(uint8_t),kBN,fp_dBGindex);
 	p_sdBGidx->p_branchedkmerad = p_branchedkmerad;
 	ByteCnt += sizeof(uint8_t) * kBN;
@@ -967,200 +967,245 @@ void gen_dBG_index(struct bit256KmerPara bit_para, struct para_dBGindex * p_sdBG
 	cout << "unipath sequence fwrite done" << endl;
 
 		//两两排序
-	uint64_t * cmp_p1,*cmp_p2;
-	uint32_t *cmp_id1,*cmp_id2;
-	uint32_t cmp_idtmp;
-	cmp_p1 = ukmer_array;
-	cmp_p2 = ukmer_array + unitperkmer;
-	cmp_id1 = ukmerid_array;
-	cmp_id2 = cmp_id1 + 1;
-	while(cmp_p1 != ukmer_array + ukN * unitperkmer && cmp_p2 != ukmer_array + ukN * unitperkmer)
+	char ukmer_file[32] = {0};
+	char ukmerid_file[32] = {0};
+	sprintf(ukmer_file,"%s0%d","ukmer",kmerL);
+	sprintf(ukmerid_file,"%s0%did","ukmer",kmerL);
+	FILE * fp_unbranched_kmer_file = NULL, *fp_unbranched_kmerid_file = NULL;
+	if(access(ukmer_file,0) != 0 || access(ukmerid_file,0) != 0)   //如果ukmer和ukmerad文件不存在  则读入内存并写入文件
 	{
-		if(cmp256BitKmer(cmp_p1,cmp_p2,unitperkmer)==1)
+		uint64_t * cmp_p1,*cmp_p2;
+		uint32_t *cmp_id1,*cmp_id2;
+		uint32_t cmp_idtmp;
+		cmp_p1 = ukmer_array;
+		cmp_p2 = ukmer_array + unitperkmer;
+		cmp_id1 = ukmerid_array;
+		cmp_id2 = cmp_id1 + 1;
+		while(cmp_p1 != ukmer_array + ukN * unitperkmer && cmp_p2 != ukmer_array + ukN * unitperkmer)
 		{
-			kmercpy(hashvalue_tmp,cmp_p1,unitperkmer);
-			kmercpy(cmp_p1,cmp_p2,unitperkmer);
-			kmercpy(cmp_p2,hashvalue_tmp,unitperkmer);
-			cmp_idtmp = *cmp_id1;
-			*cmp_id1 = *cmp_id2;
-			*cmp_id2 = cmp_idtmp;
-		}
-		cmp_p1 += 2*unitperkmer;
-		cmp_p2 += 2*unitperkmer;
-		cmp_id1 += 2;
-		cmp_id2 += 2;
-	}
-
-	//5)整体排序
-	//5.1分配轮换空间
-	uint64_t *ukmer_array_1;
-	ukmer_array_1=(uint64_t *)malloc(sizeof(uint64_t)*unitnum);
-	memset(ukmer_array_1,0,sizeof(uint64_t)*unitnum);
-	uint32_t * ukmerid_array_1;
-	ukmerid_array_1 = (uint32_t *)malloc(sizeof(uint32_t)*ukN);
-	memset(ukmerid_array_1,0,sizeof(uint32_t)*ukN);
-
-	//5.2计算合并次数
-	uint32_t N_merge;
-	uint32_t N_block;
-	N_block=ceil((double)ukN/blocksize);
-	N_merge=ceil(log(N_block)/log(2));
-
-	uint32_t N_block_tmp=N_block;
-	uint64_t *p_start_kmer,*p_des_kmer,*p_kmer_tmp;
-	uint32_t *p_start_id,*p_des_id,*p_id_tmp;
-	p_start_kmer=ukmer_array;
-	p_des_kmer=ukmer_array_1;
-	p_start_id=ukmerid_array;
-	p_des_id=ukmerid_array_1;
-	uint32_t last_kmer;
-	for(uint32_t i=0;i<N_merge;i++)
-	{
-		uint32_t Size_block_loop=blocksize*pow(2,i);
-		uint32_t Size_block_loop_p2;
-
-		if(thread_num==1)
-		{
-			for(uint32_t j=0;j<N_block_tmp/2;j++)
+			if(cmp256BitKmer(cmp_p1,cmp_p2,unitperkmer)==1)
 			{
+				kmercpy(hashvalue_tmp,cmp_p1,unitperkmer);
+				kmercpy(cmp_p1,cmp_p2,unitperkmer);
+				kmercpy(cmp_p2,hashvalue_tmp,unitperkmer);
+				cmp_idtmp = *cmp_id1;
+				*cmp_id1 = *cmp_id2;
+				*cmp_id2 = cmp_idtmp;
+			}
+			cmp_p1 += 2*unitperkmer;
+			cmp_p2 += 2*unitperkmer;
+			cmp_id1 += 2;
+			cmp_id2 += 2;
+		}
 
-				uint64_t *p1,*p2,*p3;
-				uint32_t *id1,*id2,*id3;
+		//5)整体排序
+		//5.1分配轮换空间
+		uint64_t *ukmer_array_1;
+		ukmer_array_1=(uint64_t *)malloc(sizeof(uint64_t)*unitnum);
+		memset(ukmer_array_1,0,sizeof(uint64_t)*unitnum);
+		uint32_t * ukmerid_array_1;
+		ukmerid_array_1 = (uint32_t *)malloc(sizeof(uint32_t)*ukN);
+		memset(ukmerid_array_1,0,sizeof(uint32_t)*ukN);
 
-				p1=p_start_kmer+(2*j)*Size_block_loop*unitperkmer;
-				p2=p_start_kmer+(2*j+1)*Size_block_loop*unitperkmer;
-				p3=p_des_kmer+(2*j)*Size_block_loop*unitperkmer;
+		//5.2计算合并次数
+		uint32_t N_merge;
+		uint32_t N_block;
+		N_block=ceil((double)ukN/blocksize);
+		N_merge=ceil(log(N_block)/log(2));
 
-				id1=p_start_id+(2*j)*Size_block_loop;
-				id2=p_start_id+(2*j+1)*Size_block_loop;
-				id3=p_des_id+(2*j)*Size_block_loop;
+		uint32_t N_block_tmp=N_block;
+		uint64_t *p_start_kmer,*p_des_kmer,*p_kmer_tmp;
+		uint32_t *p_start_id,*p_des_id,*p_id_tmp;
+		p_start_kmer=ukmer_array;
+		p_des_kmer=ukmer_array_1;
+		p_start_id=ukmerid_array;
+		p_des_id=ukmerid_array_1;
+		uint32_t last_kmer;
+		for(uint32_t i=0;i<N_merge;i++)
+		{
+			uint32_t Size_block_loop=blocksize*pow(2,i);
+			uint32_t Size_block_loop_p2;
 
-				if(j == (N_block_tmp/2 - 1))
+			if(thread_num==1)
+			{
+				for(uint32_t j=0;j<N_block_tmp/2;j++)
 				{
-					uint64_t last_p2 = (p2-p_start_kmer)/unitperkmer; //(2*j+1)*Size_block_loop
-					if(last_p2 + Size_block_loop > ukN)
+
+					uint64_t *p1,*p2,*p3;
+					uint32_t *id1,*id2,*id3;
+
+					p1=p_start_kmer+(2*j)*Size_block_loop*unitperkmer;
+					p2=p_start_kmer+(2*j+1)*Size_block_loop*unitperkmer;
+					p3=p_des_kmer+(2*j)*Size_block_loop*unitperkmer;
+
+					id1=p_start_id+(2*j)*Size_block_loop;
+					id2=p_start_id+(2*j+1)*Size_block_loop;
+					id3=p_des_id+(2*j)*Size_block_loop;
+
+					if(j == (N_block_tmp/2 - 1))
 					{
-						Size_block_loop_p2 = ukN-last_p2;
+						uint64_t last_p2 = (p2-p_start_kmer)/unitperkmer; //(2*j+1)*Size_block_loop
+						if(last_p2 + Size_block_loop > ukN)
+						{
+							Size_block_loop_p2 = ukN-last_p2;
+						}
+						else
+						{
+							Size_block_loop_p2=Size_block_loop;
+						}
 					}
 					else
 					{
 						Size_block_loop_p2=Size_block_loop;
 					}
-				}
-				else
-				{
-					Size_block_loop_p2=Size_block_loop;
-				}
 
-				uint64_t cnt1 = 0, cnt2 = 0, memcp_n = 0;
-				while(cnt1 < Size_block_loop && cnt2 < Size_block_loop_p2)
-				{
-					if(cmp256BitKmer(p1,p2,unitperkmer)==0)
+					uint64_t cnt1 = 0, cnt2 = 0, memcp_n = 0;
+					while(cnt1 < Size_block_loop && cnt2 < Size_block_loop_p2)
 					{
-						cnt1++;
-						kmercpy(p3,p1,unitperkmer);
-						p1+=unitperkmer;
-						p3+=unitperkmer;
+						if(cmp256BitKmer(p1,p2,unitperkmer)==0)
+						{
+							cnt1++;
+							kmercpy(p3,p1,unitperkmer);
+							p1+=unitperkmer;
+							p3+=unitperkmer;
 
-						*id3=*id1;
-						id1++;
-						id3++;
+							*id3=*id1;
+							id1++;
+							id3++;
+						}
+						else
+						{
+							cnt2++;
+							kmercpy(p3,p2,unitperkmer);
+							p2+=unitperkmer;
+							p3+=unitperkmer;
+
+							*id3=*id2;
+							id2++;
+							id3++;
+						}
+					}
+					if(cnt2==Size_block_loop_p2)
+					{
+						memcp_n = (Size_block_loop - cnt1) ;
+						memcpy(p3,p1,memcp_n*unitperkmer * sizeof(uint64_t));
+						memcpy(id3,id1,memcp_n * sizeof(uint32_t));
 					}
 					else
 					{
-						cnt2++;
-						kmercpy(p3,p2,unitperkmer);
-						p2+=unitperkmer;
-						p3+=unitperkmer;
-
-						*id3=*id2;
-						id2++;
-						id3++;
+						memcp_n = (Size_block_loop_p2 - cnt2) ;
+						memcpy(p3,p2,memcp_n *unitperkmer *  sizeof(uint64_t));
+						memcpy(id3,id2,memcp_n * sizeof(uint32_t));
 					}
 				}
-				if(cnt2==Size_block_loop_p2)
+				if(N_block_tmp%2!=0)
 				{
-					memcp_n = (Size_block_loop - cnt1) ;
-					memcpy(p3,p1,memcp_n*unitperkmer * sizeof(uint64_t));
-					memcpy(id3,id1,memcp_n * sizeof(uint32_t));
-				}
-				else
-				{
-					memcp_n = (Size_block_loop_p2 - cnt2) ;
-					memcpy(p3,p2,memcp_n *unitperkmer *  sizeof(uint64_t));
-					memcpy(id3,id2,memcp_n * sizeof(uint32_t));
+					uint32_t offset = Size_block_loop*(N_block_tmp/2)*2;
+					last_kmer = ukN - offset;
+					uint64_t *p_des_kmer_tmp = p_des_kmer + offset*unitperkmer;
+					uint64_t *p_start_kmer_tmp = p_start_kmer + offset*unitperkmer;
+					uint32_t *p_des_id_tmp = p_des_id + offset;
+					uint32_t *p_start_id_tmp = p_start_id + offset;
+					memcpy(p_des_kmer_tmp,p_start_kmer_tmp,last_kmer*unitperkmer*sizeof(uint64_t));
+					memcpy(p_des_id_tmp,p_start_id_tmp,last_kmer*sizeof(uint32_t));
 				}
 			}
-			if(N_block_tmp%2!=0)
+			else
 			{
-				uint32_t offset = Size_block_loop*(N_block_tmp/2)*2;
-				last_kmer = ukN - offset;
-				uint64_t *p_des_kmer_tmp = p_des_kmer + offset*unitperkmer;
-				uint64_t *p_start_kmer_tmp = p_start_kmer + offset*unitperkmer;
-				uint32_t *p_des_id_tmp = p_des_id + offset;
-				uint32_t *p_start_id_tmp = p_start_id + offset;
-				memcpy(p_des_kmer_tmp,p_start_kmer_tmp,last_kmer*unitperkmer*sizeof(uint64_t));
-				memcpy(p_des_id_tmp,p_start_id_tmp,last_kmer*sizeof(uint32_t));
+				pthread_t* t;
+				t=(pthread_t*)malloc(sizeof(pthread_t)*thread_num);
+				struct para_merge * p_para;
+				p_para=(struct para_merge *)malloc(sizeof(struct para_merge)*thread_num);
+				for(uint32_t i_para=0;i_para<thread_num;i_para++)
+				{
+					p_para[i_para].p_start_kmer=p_start_kmer;
+					p_para[i_para].p_des_kmer=p_des_kmer;
+					p_para[i_para].p_start_id=p_start_id;
+					p_para[i_para].p_des_id=p_des_id;
+					p_para[i_para].blocksize=Size_block_loop;
+					p_para[i_para].thread_num=thread_num;
+					p_para[i_para].thread_id=i_para;
+					p_para[i_para].ukN=ukN;
+					p_para[i_para].unitperkmer=unitperkmer;
+					p_para[i_para].N_block=N_block_tmp;
+					if(pthread_create(t+i_para, NULL, merge, (void*)(p_para+i_para))!=0)
+					{
+						cout << "error!" << endl;
+					}
+				}
+				for(uint32_t i_para=0;i_para<thread_num;i_para++)
+				{
+					pthread_join(t[i_para], NULL);
+				}
+				free(p_para);
+				free(t);
 			}
+
+			N_block_tmp=ceil((double)N_block_tmp/2);
+			p_kmer_tmp=p_des_kmer;
+			p_des_kmer=p_start_kmer;
+			p_start_kmer=p_kmer_tmp;
+
+			p_id_tmp=p_des_id;
+			p_des_id=p_start_id;
+			p_start_id=p_id_tmp;
+		}
+		fwrite(p_start_kmer,sizeof(uint64_t)*unitperkmer,ukN,fp_dBGindex);
+		p_sdBGidx->p_unbranchedkmer = p_start_kmer;
+		fwrite(p_start_id,sizeof(uint32_t),ukN,fp_dBGindex);
+		p_sdBGidx->p_unbranchedkmerid = p_start_id;
+		if(p_start_kmer == ukmer_array_1)
+		{
+			free(ukmer_array);
+			free(ukmerid_array);
 		}
 		else
 		{
-			pthread_t* t;
-			t=(pthread_t*)malloc(sizeof(pthread_t)*thread_num);
-			struct para_merge * p_para;
-			p_para=(struct para_merge *)malloc(sizeof(struct para_merge)*thread_num);
-			for(uint32_t i_para=0;i_para<thread_num;i_para++)
-			{
-				p_para[i_para].p_start_kmer=p_start_kmer;
-				p_para[i_para].p_des_kmer=p_des_kmer;
-				p_para[i_para].p_start_id=p_start_id;
-				p_para[i_para].p_des_id=p_des_id;
-				p_para[i_para].blocksize=Size_block_loop;
-				p_para[i_para].thread_num=thread_num;
-				p_para[i_para].thread_id=i_para;
-				p_para[i_para].ukN=ukN;
-				p_para[i_para].unitperkmer=unitperkmer;
-				p_para[i_para].N_block=N_block_tmp;
-				if(pthread_create(t+i_para, NULL, merge, (void*)(p_para+i_para))!=0)
-				{
-					cout << "error!" << endl;
-				}
-			}
-			for(uint32_t i_para=0;i_para<thread_num;i_para++)
-			{
-				pthread_join(t[i_para], NULL);
-			}
-			free(p_para);
-			free(t);
+			free(ukmer_array_1);
+			free(ukmerid_array_1);
 		}
-
-		N_block_tmp=ceil((double)N_block_tmp/2);
-		p_kmer_tmp=p_des_kmer;
-		p_des_kmer=p_start_kmer;
-		p_start_kmer=p_kmer_tmp;
-
-		p_id_tmp=p_des_id;
-		p_des_id=p_start_id;
-		p_start_id=p_id_tmp;
-	}
-	fwrite(p_start_kmer,sizeof(uint64_t),unitnum,fp_dBGindex);
-	p_sdBGidx->p_unbranchedkmer = p_start_kmer;
-	ByteCnt += sizeof(uint64_t) * unitnum;
-	fwrite(p_start_id,sizeof(uint32_t),ukN,fp_dBGindex);
-	p_sdBGidx->p_unbranchedkmerid = p_start_id;
-	ByteCnt += sizeof(uint32_t) * ukN;
-	cout << "ByteCnt:" << ByteCnt << endl;
-	cout << "unbranch kmer fwrite done" << endl;
-	if(p_start_kmer == ukmer_array_1)
-	{
-		free(ukmer_array);
-		free(ukmerid_array);
+		fp_unbranched_kmer_file = fopen(ukmer_file,"wb");
+		fp_unbranched_kmerid_file = fopen(ukmerid_file,"wb");
+		fwrite(p_sdBGidx->p_unbranchedkmer,sizeof(uint64_t),unitnum,fp_unbranched_kmer_file);
+		fwrite(p_sdBGidx->p_unbranchedkmerid,sizeof(uint32_t),ukN,fp_unbranched_kmerid_file);
+		cout << "ukmer file size:" << sizeof(uint64_t) * unitnum << "\tukmerid file size:" << sizeof(uint32_t) * ukN << endl;
+		cout << "write ukmer file done !" << endl;
 	}
 	else
 	{
-		free(ukmer_array_1);
-		free(ukmerid_array_1);
+		uint64_t ukNf;
+		fp_unbranched_kmer_file = fopen(ukmer_file,"rb");
+		fseek(fp_unbranched_kmer_file,0,2);
+		ukNf = ftell(fp_unbranched_kmer_file)/(sizeof(uint64_t)*unitperkmer);
+		fseek(fp_unbranched_kmer_file,0,0);
+
+		uint64_t ukNfi;
+		fp_unbranched_kmerid_file = fopen(ukmerid_file,"rb");
+		fseek(fp_unbranched_kmerid_file,0,2);
+		ukNfi = ftell(fp_unbranched_kmerid_file)/sizeof(uint32_t);
+		fseek(fp_unbranched_kmerid_file,0,0);
+
+		if(ukN != ukNf)
+		{
+			cout <<"ukN not match ukNf" << endl;
+		}
+		if(ukNf != ukNfi)
+		{
+			cout << ukmer_file << " kmer number mismatch " << ukmerid_file << endl;
+			exit(1);
+		}
+		fread(ukmer_array,sizeof(uint64_t)*unitperkmer,ukN,fp_unbranched_kmer_file);
+		fread(ukmerid_array,sizeof(uint32_t),ukN,fp_unbranched_kmerid_file);
+		p_sdBGidx->p_unbranchedkmer = ukmer_array;
+		p_sdBGidx->p_unbranchedkmerid = ukmerid_array;
+		cout << "read ukmer from file done !" << endl;
 	}
+	ByteCnt += sizeof(uint64_t) * unitnum;
+	ByteCnt += sizeof(uint32_t) * ukN;
+	fclose(fp_unbranched_kmer_file);
+	fclose(fp_unbranched_kmerid_file);
+	cout << "ByteCnt:" << ByteCnt << endl;
+	cout << "generate dBG index done" << endl;
 	free(hashvalue_tmp);
 	free(p_unipath);
 }

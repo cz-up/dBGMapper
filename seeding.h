@@ -54,6 +54,7 @@ void init_rootnode(struct TPTnode *pnode,struct seed_extpara ext_para, char *seq
 void ext_treenode(struct seed_extpara ref_para, struct TPTnode *pnode,\
 		char *seq, uint32_t extlen, bool *ponunipath);
 void print_extree(struct TPTnode node,char *seq);
+void print_specificlen(struct TPTnode node,struct seed_extpara ext_set, uint32_t extlen, char *seq);
 void destory_extree(struct TPTnode *pnode);
 
 #endif /* SEEDING_H_ */
