@@ -5,13 +5,15 @@
  *      Author: pluto
  */
 
+#include "analyse_dBG.h"
 #include "basic.h"
 #include "read.h"
 #include "load_DBG.h"
 #include "load_DBG_full.h"
-#include "Test_dBG_para.h"
 #include "seeding.h"
 #include "BPlusTree_full.h"
+#include "mapperStruct.h"
+#include "prealignment.h"
 
 int main(int argc, char** argv)
 {
@@ -54,6 +56,18 @@ int main(int argc, char** argv)
 		}
 
 	}
+	for(int i = 0; i < 1; /*strlen(kmertest)-7;*/ ++i)
+	{
+		char readt[16] = {0};
+//		strncpy(readt,kmertest+i+2,4);
+		int ret = pre_alignment(alignseq, kmertest, 2, strlen(kmertest)-7, tau);
+		if(!ret)
+		{
+			cout << "ret != 1" << "i = " << i << endl;
+		}
+	}
+	cout << "test done\n";
+	getchar();
 	struct timeval tvs,tve;
 	gettimeofday(&tvs,NULL);
 	char nindex[] = "./nindex";
@@ -68,7 +82,8 @@ int main(int argc, char** argv)
 	struct bit256KmerPara bit_para;
 	get_para(&bit_para,p_test.L);
 	struct para_dBGindex sdBGindex;
-	gen_dBG_index(bit_para, &sdBGindex, p_dbg_path,1);
+	char *ref;
+	gen_dBG_index(bit_para, &sdBGindex, p_dbg_path,1,&ref);
 
 	uint32_t unitperkmer;
 	unitperkmer = bit_para.kmer64Len;
@@ -78,6 +93,7 @@ int main(int argc, char** argv)
 	struct seed_extpara ext_set;
 	bool unipathflag = false;
 	ext_set.dir = dir;
+	ext_set.orignseq = kmertest;
 	ext_set.alignseq = alignseq;
 	ext_set.tau = tau;
 	ext_set.bit_para = bit_para;
@@ -90,45 +106,34 @@ int main(int argc, char** argv)
 	{
 		ext_set.FMidx = rFMidx;
 	}
-	init_rootnode(&rootnode, ext_set, kmertest);
-	ext_treenode(ext_set, &rootnode, kmertest,extlen+tau, &unipathflag);
-	cout << "ext_treenode finished!" << endl;
-	char *extseq = new char[extlen+2]();
-	print_extree(rootnode, extseq);
-	cout << "print_extree done!\n";
-	char *seedseq = new char[extlen+2]();
-	print_specificlen(rootnode, ext_set, extlen, seedseq);
-	cout << "print_specificlen done!\n";
-//	calc_seedextpara(&sedextest, "CCAC" , 1, nFMidx, rFMidx, bd_para);
-//	for(uint32_t i = 0; i < strlen(sedextest.seqext[0]); i++)
-//	{
-//		for(uint32_t j = 0; j < 3; j++)
-//		{
-//			cout << sedextest.p3_extedarr[0][i][j] << " ";
-//		}
-//		cout << endl;
-//	}
-//	cout << "print the extend char frequency." << endl;
-//	for(uint32_t i = 0; i < sedextest.num; i++)
-//	{
-//		for(uint32_t j = 0; j < strlen(sedextest.seqext[i]); j++)
-//		{
-//			cout << sedextest.p2_extchcnt[i][j] << " ";
-//		}
-//		cout << endl;
-//	}
-//	cout << "calc_seedext" << endl;
-//	free_seedext(&sedextest);
-//	cout << "free_seedext" << endl;
-//	cout << "print_extree finished" << endl;
-	destory_extree(&rootnode);
-//	cout << "destory_extree finished!" << endl;
-	cout << "gen dBG over" << endl;
-	free_dBGindex(&sdBGindex);
-//	Test_dBG_Attribute(&p_test, p_dbg_path);
+//	init_rootnode(&rootnode, ext_set, kmertest);
+//	ext_treenode(ext_set, &rootnode, kmertest,extlen+tau, &unipathflag);
+//	cout << "ext_treenode finished!" << endl;
+//	char *extseq = new char[extlen+2]();
+//	print_extree(rootnode, extseq);
+//	cout << "print_extree done!\n";
+//
+//	struct seed_segment p_seedsegtmp;
+//	char *seedseq = new char[extlen+2]();
+//	print_specificlen(rootnode, ext_set, extlen, seedseq,&p_seedsegtmp);
+//	cout << "print_specificlen done!\n";
+//	cout << "seed segment seq:" << p_seedsegtmp.seedseq << endl;
+//	destory_extree(&rootnode);
+//	cout << "gen dBG over" << endl;
+//	free_dBGindex(&sdBGindex);
+	char *funname = "generate_seeds";
 
-	char *funname = "gen_dBG_index";
-
+	//test mapperStruct
+	vector<ms_seed>  vseed;
+	vector<ms_candidate>  vcand;
+	vector<ms_result>  vrslt;
+	generate_seeds(kmertest,ext_set.tau,nFMidx,vseed);
+	generate_candidate(vseed, nFMidx, vcand);
+	printvec_seed(vseed);
+	printvec_candidate(vcand);
+	verification(vseed, vcand, vrslt, kmertest, ref, ext_set.tau);
+	printvec_result(vrslt);
+	//
 	cout << "end..."<< endl;
 	gettimeofday(&tve,NULL);
 	double span = tve.tv_sec-tvs.tv_sec + (tve.tv_usec-tvs.tv_usec)/1000000.0;

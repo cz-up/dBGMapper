@@ -17,107 +17,107 @@
 #include "basic.h"
 #include "method.h"
 
-void reverse(char *a, uint32_t l, char ** ra)
-{
-	//求一个字符串的反串。
-	char * p_tmp;
-	p_tmp=(char*)malloc(sizeof(char)*l);
-	for(uint32_t i=0;i<l;i++)
-	{
-		p_tmp[i]=a[l-1-i];
-	}
-	*ra=p_tmp;
-}
-void generate_seed_array(uint32_t * p_array_seed_len, struct seed * p_seed, uint32_t tau, uint32_t read_len)
-{
-	uint32_t start;
-	start=0;
-	p_seed->p_seed=(struct seed_single*)malloc(sizeof(struct seed_single)*(tau+1));
-	p_seed->p_seed_reverse=(struct seed_single*)malloc(sizeof(struct seed_single)*(tau+1));
-	for(uint32_t i=0;i<tau+1;i++)
-	{
-		p_seed->p_seed[i].len=p_array_seed_len[i];
-		p_seed->p_seed[i].start=start;
-		p_seed->p_seed[i].end=start+p_array_seed_len[i]-1;
-		start=start+p_array_seed_len[i];
-	}
-
-	for(uint32_t i=0;i<tau+1;i++)
-	{
-		p_seed->p_seed_reverse[i].len=p_seed->p_seed[i].len;
-		p_seed->p_seed_reverse[i].start=read_len-1-p_seed->p_seed[i].end;
-		p_seed->p_seed_reverse[i].end=read_len-1-p_seed->p_seed[i].start;
-	}
-}
-void generate_read_kmer_present_vec(struct NodeBit** p_kmer_root,uint32_t ** kmer_present_label,char * p_read, uint32_t read_len,uint32_t kmer_len)
-{
-	struct bit256KmerPara bit_para;
-	get_para(&bit_para,kmer_len);
-
-	uint32_t * kmer_present_label_tmp;
-	kmer_present_label_tmp=(uint32_t *)malloc(sizeof(uint32_t)*(read_len-kmer_len+1));
-	uint64_t * p_kmer_tmp;
-	p_kmer_tmp=(uint64_t *)malloc(sizeof(uint64_t)*4);
-
-	cal_hash_value_directly_256bit(p_read,p_kmer_tmp,bit_para);
-	kmer_present_label_tmp[0]=getHashFTableValue(p_kmer_root,p_kmer_tmp,bit_para);
-	for(uint32_t i=1;i<read_len-kmer_len+1;i++)
-	{
-		cal_hash_value_indirectly_256bit(p_read+i,p_kmer_tmp,p_kmer_tmp,bit_para);
-		kmer_present_label_tmp[i]=getHashFTableValue(p_kmer_root,p_kmer_tmp,bit_para);
-	}
-
-	*kmer_present_label=kmer_present_label_tmp;
-	free(p_kmer_tmp);
-}
-void ave_seeding(char * p_read, uint32_t read_len, struct seed * p_seed, uint32_t tau,uint32_t kmer_len)
-{
-	//按照长度平均拆分
-	char * p_read_reverse;
-	reverse(p_read, read_len, &p_read_reverse);
-	p_seed->p_read=p_read;
-	p_seed->p_read_reverse=p_read_reverse;
-	p_seed->seed_total_num=tau+1;
-
-	//如果不能产生长度都大于kmer_len的kmer，那么就报告错误，并返回。
-	if(read_len/(tau+1)<kmer_len)
-	{
-		cout << "error: from ave_seeding() method!" << endl;
-		cout << "description: the kmer length is too large, ave_seeding() can't generate seeds with length larger than kmer_len." <<endl;
-		return;
-	}
-
-	//产生seed的长度
-	uint32_t * p_array_seed_len;
-	p_array_seed_len=(uint32_t *)malloc(sizeof(uint32_t)*(tau+1));
-
-	uint32_t div=read_len/(tau+1);
-	uint32_t mod=read_len%(tau+1);
-
-	for(uint32_t i=0;i<tau+1;i++)
-	{
-		p_array_seed_len[i]=div;
-	}
-	for(uint32_t i=0;i<mod;i++)
-	{
-		p_array_seed_len[i]++;
-	}
-
-	generate_seed_array(p_array_seed_len, p_seed, tau, read_len);
-
-	free(p_array_seed_len);
-}
-
-void non_ave_seeding(char * p_read, uint32_t read_len, struct seed * p_seed, uint32_t tau,uint32_t kmer_len, uint32_t * kmer_present_label)
-{
-	//选择一组没有出现的kmer，如果将其作为分割边界，能够将整个read分割为tau+1个seeds，那么称这组没有出现的kmer是符合条件的。
-	//选择一组没有出现的kmer，其中包含的kmer的数量最多。然后基于这组没有出现的kmer对read进行seeding。
-}
-
-void gen_candidateSet()
-{
-
-}
+//void reverse(char *a, uint32_t l, char ** ra)
+//{
+//	//求一个字符串的反串。
+//	char * p_tmp;
+//	p_tmp=(char*)malloc(sizeof(char)*l);
+//	for(uint32_t i=0;i<l;i++)
+//	{
+//		p_tmp[i]=a[l-1-i];
+//	}
+//	*ra=p_tmp;
+//}
+//void generate_seed_array(uint32_t * p_array_seed_len, struct seed * p_seed, uint32_t tau, uint32_t read_len)
+//{
+//	uint32_t start;
+//	start=0;
+//	p_seed->p_seed=(struct seed_single*)malloc(sizeof(struct seed_single)*(tau+1));
+//	p_seed->p_seed_reverse=(struct seed_single*)malloc(sizeof(struct seed_single)*(tau+1));
+//	for(uint32_t i=0;i<tau+1;i++)
+//	{
+//		p_seed->p_seed[i].len=p_array_seed_len[i];
+//		p_seed->p_seed[i].start=start;
+//		p_seed->p_seed[i].end=start+p_array_seed_len[i]-1;
+//		start=start+p_array_seed_len[i];
+//	}
+//
+//	for(uint32_t i=0;i<tau+1;i++)
+//	{
+//		p_seed->p_seed_reverse[i].len=p_seed->p_seed[i].len;
+//		p_seed->p_seed_reverse[i].start=read_len-1-p_seed->p_seed[i].end;
+//		p_seed->p_seed_reverse[i].end=read_len-1-p_seed->p_seed[i].start;
+//	}
+//}
+//void generate_read_kmer_present_vec(struct NodeBit** p_kmer_root,uint32_t ** kmer_present_label,char * p_read, uint32_t read_len,uint32_t kmer_len)
+//{
+//	struct bit256KmerPara bit_para;
+//	get_para(&bit_para,kmer_len);
+//
+//	uint32_t * kmer_present_label_tmp;
+//	kmer_present_label_tmp=(uint32_t *)malloc(sizeof(uint32_t)*(read_len-kmer_len+1));
+//	uint64_t * p_kmer_tmp;
+//	p_kmer_tmp=(uint64_t *)malloc(sizeof(uint64_t)*4);
+//
+//	cal_hash_value_directly_256bit(p_read,p_kmer_tmp,bit_para);
+//	kmer_present_label_tmp[0]=getHashFTableValue(p_kmer_root,p_kmer_tmp,bit_para);
+//	for(uint32_t i=1;i<read_len-kmer_len+1;i++)
+//	{
+//		cal_hash_value_indirectly_256bit(p_read+i,p_kmer_tmp,p_kmer_tmp,bit_para);
+//		kmer_present_label_tmp[i]=getHashFTableValue(p_kmer_root,p_kmer_tmp,bit_para);
+//	}
+//
+//	*kmer_present_label=kmer_present_label_tmp;
+//	free(p_kmer_tmp);
+//}
+//void ave_seeding(char * p_read, uint32_t read_len, struct seed * p_seed, uint32_t tau,uint32_t kmer_len)
+//{
+//	//按照长度平均拆分
+//	char * p_read_reverse;
+//	reverse(p_read, read_len, &p_read_reverse);
+//	p_seed->p_read=p_read;
+//	p_seed->p_read_reverse=p_read_reverse;
+//	p_seed->seed_total_num=tau+1;
+//
+//	//如果不能产生长度都大于kmer_len的kmer，那么就报告错误，并返回。
+//	if(read_len/(tau+1)<kmer_len)
+//	{
+//		cout << "error: from ave_seeding() method!" << endl;
+//		cout << "description: the kmer length is too large, ave_seeding() can't generate seeds with length larger than kmer_len." <<endl;
+//		return;
+//	}
+//
+//	//产生seed的长度
+//	uint32_t * p_array_seed_len;
+//	p_array_seed_len=(uint32_t *)malloc(sizeof(uint32_t)*(tau+1));
+//
+//	uint32_t div=read_len/(tau+1);
+//	uint32_t mod=read_len%(tau+1);
+//
+//	for(uint32_t i=0;i<tau+1;i++)
+//	{
+//		p_array_seed_len[i]=div;
+//	}
+//	for(uint32_t i=0;i<mod;i++)
+//	{
+//		p_array_seed_len[i]++;
+//	}
+//
+//	generate_seed_array(p_array_seed_len, p_seed, tau, read_len);
+//
+//	free(p_array_seed_len);
+//}
+//
+//void non_ave_seeding(char * p_read, uint32_t read_len, struct seed * p_seed, uint32_t tau,uint32_t kmer_len, uint32_t * kmer_present_label)
+//{
+//	//选择一组没有出现的kmer，如果将其作为分割边界，能够将整个read分割为tau+1个seeds，那么称这组没有出现的kmer是符合条件的。
+//	//选择一组没有出现的kmer，其中包含的kmer的数量最多。然后基于这组没有出现的kmer对read进行seeding。
+//}
+//
+//void gen_candidateSet()
+//{
+//
+//}
 
 
 //  2020.3.3
@@ -440,7 +440,7 @@ void print_extree(struct TPTnode node,char *seq)
 	}
 }
 
-void print_specificlen(struct TPTnode node,struct seed_extpara ext_set, uint32_t extlen, char *seq)
+void print_specificlen(struct TPTnode node,struct seed_extpara ext_set, uint32_t extlen, char *seq, struct seed_segment *ps_segment)
 {
 	if(node.p_child[0] == NULL && node.p_child[1] == NULL && node.p_child[2] == NULL && node.p_child[3] == NULL)
 	{
@@ -448,6 +448,28 @@ void print_specificlen(struct TPTnode node,struct seed_extpara ext_set, uint32_t
 		if(node.level >= extlen - ext_set.tau && node.level <= extlen + ext_set.tau)
 		{
 			printf("%s\n",seq);
+			if(ps_segment != NULL)
+			{
+				uint32_t seqlen = strlen(seq);
+				uint32_t mergelen = seqlen + ext_set.bit_para.kmer1Len / 2;
+				char *seedmerge = (char *)malloc(sizeof(char) * mergelen);
+				memset(seedmerge,0,mergelen);
+				uint32_t pos = 0;
+				if(ext_set.dir == 'I')
+				{
+					for(uint32_t i = seqlen-1; i > 0; --i)
+					{
+						seedmerge[pos++] = seq[i];
+					}
+					strcpy(seedmerge+pos,ext_set.orignseq);
+				}
+				else if(ext_set.dir == 'O')
+				{
+					strcpy(seedmerge+pos,ext_set.orignseq);
+					strcat(seedmerge,seq+1);
+				}
+				ps_segment->seedseq = seedmerge;
+			}
 		}
 		seq[strlen(seq)-1] = '\0';
 	}
@@ -458,7 +480,7 @@ void print_specificlen(struct TPTnode node,struct seed_extpara ext_set, uint32_t
 			if(node.p_child[i] != NULL)
 			{
 				seq[strlen(seq)] = node.c;
-				print_specificlen(*node.p_child[i], ext_set, extlen, seq);
+				print_specificlen(*node.p_child[i], ext_set, extlen, seq, ps_segment);
 				seq[strlen(seq)-1] = '\0';
 			}
 		}

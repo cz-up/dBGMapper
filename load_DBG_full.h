@@ -45,7 +45,8 @@ void Divid_umers(struct dBG * p_dBG,char * p_dbg_path);
 void SortA_umers(struct dBG * p_dBG,char * p_dbg_path,uint32_t thread_num);
 void SortFile_umers(struct dBG * p_dBG,char * p_file_path,uint32_t thread_num);
 void Gen_navigatSeq(struct dBG * p_dBG, char * p_dbg_path);
-void gen_dBG_index(struct bit256KmerPara bit_para, struct para_dBGindex * p_sdBGidx, char * p_dbg_path, uint32_t thread_num);
+//void gen_dBG_index(struct bit256KmerPara bit_para, struct para_dBGindex * p_sdBGidx, char * p_dbg_path, uint32_t thread_num);
+void gen_dBG_index(struct bit256KmerPara bit_para, struct para_dBGindex * p_sdBGidx, char * p_dbg_path, uint32_t thread_num, char **reftmp);
 void free_dBGindex(struct para_dBGindex * p_sdBGidx);
 
 

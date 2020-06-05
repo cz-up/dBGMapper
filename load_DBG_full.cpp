@@ -793,7 +793,7 @@ void Gen_navigatSeq(struct dBG * p_dBG, char * p_dbg_path)
 	free(bkmer_array);
 }
 
-void gen_dBG_index(struct bit256KmerPara bit_para, struct para_dBGindex * p_sdBGidx, char * p_dbg_path, uint32_t thread_num)	//用CDBGO生成的文件生成一个整体的dBG index
+void gen_dBG_index(struct bit256KmerPara bit_para, struct para_dBGindex * p_sdBGidx, char * p_dbg_path, uint32_t thread_num, char **reftmp)	//用CDBGO生成的文件生成一个整体的dBG index
 {
 	uint32_t kmerL = bit_para.kmer1Len / 2;
 	uint32_t unitperkmer;
@@ -1206,6 +1206,8 @@ void gen_dBG_index(struct bit256KmerPara bit_para, struct para_dBGindex * p_sdBG
 	fclose(fp_unbranched_kmerid_file);
 	cout << "ByteCnt:" << ByteCnt << endl;
 	cout << "generate dBG index done" << endl;
+//	free(p_ref);
+	*reftmp = p_ref;
 	free(hashvalue_tmp);
 	free(p_unipath);
 }

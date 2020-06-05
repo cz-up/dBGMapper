@@ -6,6 +6,67 @@
  */
 #include "method.h"
 
+uint32_t min_lastlineEd(char *a,char * b,int32_t x,int32_t y, uint32_t &tau)  //b is ref
+{
+	uint32_t r;
+	uint32_t ** m;
+	m=(uint32_t **)malloc(sizeof(uint32_t *)*(x+1));
+	for(int32_t i=0;i<x+1;i++)
+	{
+		m[i]=(uint32_t *)malloc(sizeof(uint32_t)*(y+1));
+	}
+
+	for(int32_t i=0;i<x+1;++i)
+	{
+		m[i][0]=i;
+	}
+	for(int32_t i=0;i<y+1;++i)
+	{
+		m[0][i]=i;
+	}
+
+	for(int32_t i=1;i<x+1;++i)
+	{
+		for(int32_t j=1;j<y+1;++j)
+		{
+			int32_t tmp=0;
+			if(a[i-1]!=b[j-1])
+			{
+				tmp=1;
+			}
+			m[i][j]=min(m[i][j-1]+1,m[i-1][j-1]+tmp);
+			m[i][j]=min(m[i][j],m[i-1][j]+1);
+		}
+	}
+	r = m[x][0];
+	uint32_t col = 0;
+	for(int32_t i=1;i<x+1;++i)
+	{
+		if(m[x][i] < r)
+		{
+			r = m[x][i];
+			col = i;
+		}
+	}
+	for(int32_t i=0;i<x+1;++i)
+	{
+		free(m[i]);
+		m[i] = NULL;
+	}
+	free(m);
+	m = NULL;
+	if(r <= tau)
+	{
+		tau -= r;
+		return col;
+	}
+	else
+	{
+		return -1;
+	}
+}
+
+
 uint32_t **originalEd(char *a,char * b,int32_t x,int32_t y)
 {
 	uint32_t r;
