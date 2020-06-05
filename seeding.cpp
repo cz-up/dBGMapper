@@ -13,8 +13,8 @@
 
 #include "seeding.h"
 #include "Hash.h"
-#include "BPlusTree_full.h"
 #include "basic.h"
+#include "Binary_Search.h"
 #include "method.h"
 
 //void reverse(char *a, uint32_t l, char ** ra)

@@ -9,7 +9,7 @@
 #define MAPPERSTRUCT_H_
 
 #include "basic.h"
-#include "ExactMatch.h"
+#include "FMindex_ExactMatch.h"
 
 struct ms_seed{
 	char *seed_segment;

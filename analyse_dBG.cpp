@@ -6,9 +6,6 @@
  */
 
 #include "analyse_dBG.h"
-#include "load_DBG.h"
-#include "BplusTreeBit.h"
-#include "BPlusTree_full.h"
 
 void calc_onesinchar(uint8_t in,uint64_t &num)
 {

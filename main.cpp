@@ -7,11 +7,10 @@
 
 #include "analyse_dBG.h"
 #include "basic.h"
+#include "Binary_Search.h"
 #include "read.h"
-#include "load_DBG.h"
 #include "load_DBG_full.h"
 #include "seeding.h"
-#include "BPlusTree_full.h"
 #include "mapperStruct.h"
 #include "prealignment.h"
 

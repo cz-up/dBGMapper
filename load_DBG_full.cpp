@@ -6,9 +6,170 @@
  */
 
 #include "load_DBG_full.h"
-#include "load_DBG.h"
+#include "Binary_Search.h"
 #include "BplusTreeBit.h"
-#include "BPlusTree_full.h"
+
+void get_unipath_struct(uint64_t a,struct unipath *b)
+{
+	b->start = a >> 25;
+	b->len = (a >> 8) & 0x1ffff;
+	b->ref_id = a & 0xff;
+}
+
+uint32_t get_Dbg_file_name(char* p_dbg_path, char *** p_dbg_file)
+{
+	uint32_t fN = 0;
+	FILE * fp = NULL; //文件指针。
+    int32_t c, lc=0; //c为文件当前字符，lc为上一个字符，供结尾判断用。
+    uint32_t line_num = 0; //行数统计
+    fp = fopen(p_dbg_path, "r");//以只读方式打开文件。
+    if(fp == NULL)
+    {
+    	printf("%s is not exist!\n",p_dbg_path);
+    	return 0;
+    }
+    while((c = fgetc(fp)) != EOF) //逐个读入字符直到文件结尾
+    {
+        if(c == '\n') //统计行数。
+        {
+        	line_num++;
+        }
+        lc = c; //保存上一字符。
+    }
+    if(lc != '\n')//处理末行
+    {
+    	line_num++;
+    }
+    rewind(fp); //重新指向文件开始
+    char ** p_tmp = (char **)malloc(sizeof(char *) * line_num);
+    char path_tmp[32] = {0};
+    for( ; fN < line_num; fN++)
+    {
+    	char *name_tmp = (char *)malloc(sizeof(char) * 32);
+		fgets(path_tmp,32,fp);
+		strcat(name_tmp,path_tmp);
+		name_tmp[strlen(name_tmp)-1] = '\0'; // replace '\n' with '\0'
+		*(p_tmp+fN) = name_tmp;
+    }
+    fclose(fp);
+    *p_dbg_file = p_tmp;
+	return fN;
+}
+
+uint64_t get_total_kmer_number(char ** p_dbg_file, uint64_t *kN, uint64_t *ukN)
+{
+	uint64_t tN = 0;
+	uint64_t kN_b = 0;
+	FILE * fp0 = NULL;
+	FILE * fp2 = NULL;
+    uint64_t len = 0; //c为文件当前字符，lc为上一个字符，供结尾判断用。
+	fp0 = fopen(p_dbg_file[0], "rb");
+	fp2 = fopen(p_dbg_file[2], "rb");
+	if(fp0 == NULL || fp2 == NULL)
+	{
+		printf("%s or %s not exist!\n",p_dbg_file[0],p_dbg_file[2]);
+		return 0;
+	}
+	fseek(fp0,0,SEEK_END);//将文件内部的指针指向文件末尾
+	len = ftell(fp0);//获取文件长度，（得到文件位置指针当前位置相对于文件首的偏移字节数）
+	kN_b = len / sizeof(uint64_t);
+    fclose(fp0);
+
+    fseek(fp2,0,SEEK_END);//将文件内部的指针指向文件末尾
+    len = ftell(fp2);
+    fseek(fp2,0,0);
+//    cout << len << endl;
+    uint64_t *ptmp = NULL;
+    ptmp = (uint64_t *)malloc(len);
+    memset(ptmp,0,len);
+    fread(ptmp,1,len,fp2);
+    len = len / sizeof(uint64_t);
+    uint32_t kN_unipath;
+    kN_unipath=0;
+    for(uint32_t i = 0; i < len; i++)
+    {
+    	uint64_t tmp;
+    	tmp=(*(ptmp+i) >> 8 ) & 0x1ffff;
+    	kN_unipath = kN_unipath + tmp;
+    }
+
+    tN = kN_b+kN_unipath;
+    *kN = kN_b;
+    *ukN = kN_unipath;
+
+    free(ptmp);
+    fclose(fp2);
+	return tN;
+}
+
+uint32_t get_total_unipath_number(char ** p_dbg_file)
+{
+	uint32_t uN = 0;
+	FILE * fp = NULL;
+    uint32_t len = 0;
+	fp = fopen(p_dbg_file[2],"r");
+	if(fp == NULL)
+	{
+		printf("%s is not exist!\n",p_dbg_file[2]);
+		return 0;
+	}
+	fseek(fp,0,SEEK_END);//将文件内部的指针指向文件末尾
+	len = ftell(fp);//获取文件长度，（得到文件位置指针当前位置相对于文件首的偏移字节数）
+	uN = len / sizeof(uint64_t);
+    fclose(fp);
+	return uN;
+}
+
+void get_unipath_kmer_ad(char* p_cur,uint32_t kmer_len,uint8_t * ad)
+{
+	*ad = 0;
+	switch(*(p_cur-1))
+	{
+		case 'A':
+			*ad += 0x80;
+			break;
+		case 'C':
+			*ad += 0x40;
+			break;
+		case 'G':
+			*ad += 0x20;
+			break;
+		case 'T':
+			*ad += 0x10;
+			break;
+		default:
+			break;
+	}
+	switch(*(p_cur+kmer_len))
+	{
+		case 'A':
+			*ad += 0x08;
+			break;
+		case 'C':
+			*ad += 0x04;
+			break;
+		case 'G':
+			*ad += 0x02;
+			break;
+		case 'T':
+			*ad += 0x01;
+			break;
+		default:
+			break;
+	}
+}
+
+void save_kmer_details(struct kmer_detail * a,\
+		uint8_t is_branched,\
+		uint8_t ad,\
+		uint32_t unipath_id,\
+		uint16_t unipath_offset)
+{
+	a->is_branched = is_branched;
+	a->ad = ad;
+	a->unipath_id = unipath_id;
+	a->unipath_offset = unipath_offset;
+}
 
 void *merge(void *arg)
 {

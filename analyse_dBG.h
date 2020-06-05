@@ -9,6 +9,9 @@
 #define ANALYSE_DBG_H_
 
 #include "basic.h"
+#include "Binary_Search.h"
+#include "load_DBG_full.h"
+#include "BplusTreeBit.h"
 
 void test_2MethodRate(struct dBG * p_dBG, char * p_file_path);
 void test_bkmer_index(struct dBG * p_dBG, char * p_dbg_path);

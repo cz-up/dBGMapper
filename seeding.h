@@ -9,7 +9,7 @@
 #define SEEDING_H_
 
 #include "basic.h"
-#include "ExactMatch.h"
+#include "FMindex_ExactMatch.h"
 #include "load_DBG_full.h"
 
 //struct seed_single

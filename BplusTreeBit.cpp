@@ -5,8 +5,8 @@
  *      Author: bio
  */
 #include "BplusTreeBit.h"
-#include "load_DBG.h"
-#include "BPlusTree_full.h"
+
+#include "Binary_Search.h"
 
 void cpyData(struct nodeBit* a,\
 		struct nodeBit b,\
