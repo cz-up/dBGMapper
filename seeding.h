@@ -37,6 +37,7 @@ struct seed_extpara
 	struct bit256KmerPara bit_para;
 	struct para_dBGindex sdBGidx;
 	struct sFMindex FMidx;
+	bool ponunipath;
 };
 
 struct TPTnode
@@ -59,8 +60,8 @@ struct seed_segment
 };
 
 void init_rootnode(struct TPTnode *pnode,struct seed_extpara ext_para, char *seq);
-void ext_treenode(struct seed_extpara ref_para, struct TPTnode *pnode,\
-		char *seq, uint32_t extlen, bool *ponunipath);
+void ext_treenode(struct seed_extpara &ref_para, struct TPTnode *pnode,\
+		char *seq, uint32_t extlen);
 void print_extree(struct TPTnode node,char *seq);
 void print_specificlen(struct TPTnode node,struct seed_extpara ext_set, uint32_t extlen, char *seq, struct seed_segment *ps_segment);
 void destory_extree(struct TPTnode *pnode);

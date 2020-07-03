@@ -6,7 +6,7 @@
  */
 #include "method.h"
 
-uint32_t min_lastlineEd(char *a,char * b,int32_t x,int32_t y, uint32_t &tau)  //b is ref
+uint32_t min_lastlineEd(char *a,char * b,int32_t x,int32_t y, uint32_t &tau)  //b is ref   1。read 长度不同时间   2.逻辑是否有问题  3.candidate数量
 {
 	uint32_t r;
 	uint32_t ** m;
@@ -42,7 +42,7 @@ uint32_t min_lastlineEd(char *a,char * b,int32_t x,int32_t y, uint32_t &tau)  //
 	uint32_t col = 0;
 	for(int32_t i=1;i<x+1;++i)
 	{
-		if(m[x][i] < r)
+		if(m[x][i] <= tau)
 		{
 			r = m[x][i];
 			col = i;

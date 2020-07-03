@@ -261,8 +261,7 @@ void ReadSeq(char **seq1,uint32_t *seq_length,char* p_ref)
 	cursize=maxsize;
 
 	uint32_t buffer_size=256;
-	char buffer_line[256];
-	memset(buffer_line,0,buffer_size);
+	char buffer_line[256] = {0};
 
 	FILE *fp;
 	fp = fopen(p_ref,"r+");
@@ -272,8 +271,7 @@ void ReadSeq(char **seq1,uint32_t *seq_length,char* p_ref)
 	}
 
 	uint32_t len=0;
-	uint32_t cycle=0;
-	while (fgets(buffer_line,buffer_size-1,fp)!=NULL)
+	while (fgets(buffer_line,buffer_size,fp)!=NULL)
 	{
 		if(buffer_line[0]=='>')
 			continue;
@@ -320,10 +318,9 @@ void ReadSeq(char **seq1,uint32_t *seq_length,char* p_ref)
 					seq[len]=buffer_line[i];
 					len++;
 				}
-//				cout <<"add 1 MB for seq: " << cycle++ <<endl;
 			}
 		}
-		memset(buffer_line,0,buffer_size);
+		memset(buffer_line,0,buffer_size*sizeof(char));
 	}
 	*seq_length=len;
 	*seq1=seq;

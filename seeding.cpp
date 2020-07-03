@@ -269,8 +269,8 @@ bool init_childnode(struct seed_extpara ext_para, struct TPTnode *pnodec, struct
 	return false;
 }
 
-void ext_treenode(struct seed_extpara ref_para, struct TPTnode *pnode,\
-		char *seq, uint32_t extlen, bool *ponunipath)
+void ext_treenode(struct seed_extpara &ref_para, struct TPTnode *pnode,\
+		char *seq, uint32_t extlen)
 {
 	if(extlen != 0)
 	{
@@ -292,8 +292,8 @@ void ext_treenode(struct seed_extpara ref_para, struct TPTnode *pnode,\
 			extflag = init_childnode(ref_para, pnode->p_child[0], pnode);
 			if(extflag == true)
 			{
-				*ponunipath = true;
-				ext_treenode(ref_para, pnode->p_child[0], seq, extlen-1, ponunipath);
+				ref_para.ponunipath = true;
+				ext_treenode(ref_para, pnode->p_child[0], seq, extlen-1);
 			}
 			else
 			{
@@ -313,7 +313,7 @@ void ext_treenode(struct seed_extpara ref_para, struct TPTnode *pnode,\
 			}
 			else
 			{
-				if(true == *ponunipath)
+				if(true == ref_para.ponunipath)
 				{
 					strncpy(seqe,seq+pnode->offset,seqlen);
 				}
@@ -364,8 +364,8 @@ void ext_treenode(struct seed_extpara ref_para, struct TPTnode *pnode,\
 						extflag = init_childnode(ref_para, pnode->p_child[i], pnode);
 						if(extflag == true)
 						{
-							*ponunipath = false;
-							ext_treenode(ref_para, pnode->p_child[i], seqe, extlen-1, ponunipath);
+							ref_para.ponunipath = false;
+							ext_treenode(ref_para, pnode->p_child[i], seqe, extlen-1);
 						}
 						else
 						{
@@ -402,8 +402,8 @@ void ext_treenode(struct seed_extpara ref_para, struct TPTnode *pnode,\
 				extflag = init_childnode(ref_para, pnode->p_child[0], pnode);
 				if(extflag == true)
 				{
-					*ponunipath = true;
-					ext_treenode(ref_para, pnode->p_child[0], ref_para.sdBGidx.upath_arr[ukmerid], extlen-1, ponunipath);
+					ref_para.ponunipath = true;
+					ext_treenode(ref_para, pnode->p_child[0], ref_para.sdBGidx.upath_arr[ukmerid], extlen-1);
 
 				}
 				else

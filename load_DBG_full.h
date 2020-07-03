@@ -66,10 +66,10 @@ struct para_dBGindex
 	uint64_t **p2_ukmer;
 };
 
+void get_unipath_struct(uint64_t a,struct unipath *b);
 uint32_t get_Dbg_file_name(char* p_dbg_path, char *** p_dbg_file);
 uint64_t get_total_kmer_number(char ** p_dbg_file, uint64_t *kN, uint64_t *ukN);
 uint32_t get_total_unipath_number(char ** p_dbg_file);
-void get_unipath_struct(uint64_t a,struct unipath *b);
 void get_unipath_kmer_ad(char* p_cur,uint32_t kmer_len,uint8_t * ad);
 void save_kmer_details(struct kmer_detail * a,\
 		uint8_t is_branched,\

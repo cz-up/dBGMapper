@@ -20,7 +20,7 @@ uint32_t get_Dbg_file_name(char* p_dbg_path, char *** p_dbg_file)
 {
 	uint32_t fN = 0;
 	FILE * fp = NULL; //文件指针。
-    int32_t c, lc=0; //c为文件当前字符，lc为上一个字符，供结尾判断用。
+    int32_t c = 0, lc = 0; //c为文件当前字符，lc为上一个字符，供结尾判断用。
     uint32_t line_num = 0; //行数统计
     fp = fopen(p_dbg_path, "r");//以只读方式打开文件。
     if(fp == NULL)
@@ -42,12 +42,12 @@ uint32_t get_Dbg_file_name(char* p_dbg_path, char *** p_dbg_file)
     }
     rewind(fp); //重新指向文件开始
     char ** p_tmp = (char **)malloc(sizeof(char *) * line_num);
-    char path_tmp[32] = {0};
+//    char path_tmp[32] = {0};
     for( ; fN < line_num; fN++)
     {
     	char *name_tmp = (char *)malloc(sizeof(char) * 32);
-		fgets(path_tmp,32,fp);
-		strcat(name_tmp,path_tmp);
+		fgets(name_tmp,32,fp);
+//		strcat(name_tmp,path_tmp);
 		name_tmp[strlen(name_tmp)-1] = '\0'; // replace '\n' with '\0'
 		*(p_tmp+fN) = name_tmp;
     }
@@ -1367,7 +1367,15 @@ void gen_dBG_index(struct bit256KmerPara bit_para, struct para_dBGindex * p_sdBG
 	fclose(fp_unbranched_kmerid_file);
 	cout << "ByteCnt:" << ByteCnt << endl;
 	cout << "generate dBG index done" << endl;
-//	free(p_ref);
+//	free(p_ref); //mem-leak !
+	for(int i = 0; i < fN; ++i)
+	{
+		free(p_dbg_file[i]);
+		p_dbg_file[i] = NULL;
+
+	}
+	free(p_dbg_file);
+	p_dbg_file = NULL;
 	*reftmp = p_ref;
 	free(hashvalue_tmp);
 	free(p_unipath);
