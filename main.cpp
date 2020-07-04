@@ -69,12 +69,6 @@ int main(int argc, char** argv)
 	}
 //	struct PH_Node *PH_NodeA;
 //	generate_PHNArray(&PH_NodeA, tau);
-//	struct PH_Node NodeT;
-//	NodeT.start_seed_id = p_test.L;
-//	NodeT.end_seed_id = loop;
-//	NodeT.tau = read_s;
-//	int phnindex = PHNode_index(PH_NodeA, NodeT);
-//	cout << "phnode index:" << phnindex << endl;
 //	getchar();
 
 	struct timeval tvs,tve;
@@ -84,7 +78,7 @@ int main(int argc, char** argv)
 	struct sFMindex nFMidx,rFMidx;
 	struct build_para bd_para;
 	read_bfile2index(nindex,&nFMidx,0);
-	read_bfile2index(rindex,&rFMidx,0);
+//	read_bfile2index(rindex,&rFMidx,0);
 //
 //	cout <<"start..."<<endl;
 //
@@ -98,7 +92,6 @@ int main(int argc, char** argv)
 	unitperkmer = bit_para.kmer64Len;
 	struct TPTnode rootnode;
 	struct seed_extpara ext_set;
-	bool unipathflag = false;
 	ext_set.dir = dir;
 	ext_set.orignseq = kmertest;
 	ext_set.alignseq = alignseq;
@@ -114,16 +107,13 @@ int main(int argc, char** argv)
 	{
 		ext_set.FMidx = rFMidx;
 	}
-	gettimeofday(&tvs,NULL);
+
 	init_rootnode(&rootnode, ext_set, kmertest);
-	for(uint32_t i = 0; i < loop; ++i)
+	for(int i = 0; i < loop; ++i)
 	{
 		ext_treenode(ext_set, &rootnode, kmertest,extlen+tau);
 	}
 	cout << "ext_treenode finished!" << endl;
-	gettimeofday(&tve,NULL);
-	double span = tve.tv_sec-tvs.tv_sec + (tve.tv_usec-tvs.tv_usec)/1000000.0;
-	cout << "time is: "<< span << endl;
 	char *extseq = new char[extlen+2]();
 	print_extree(rootnode, extseq);
 	cout << "print_extree done!\n";

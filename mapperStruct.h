@@ -46,7 +46,6 @@ struct ms_result
 };
 
 void generate_PHNArray(struct PH_Node **p2_node, uint32_t tau);
-uint32_t PHNode_index(struct PH_Node *p_nodeA, struct PH_Node NodeT);
 
 void generate_seeds(const char *read, uint32_t tau, sFMindex nfmindx, vector<ms_seed> & vseed);
 void free_seed(vector<ms_seed> & vseed);

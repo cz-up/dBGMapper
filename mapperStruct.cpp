@@ -50,7 +50,7 @@ void generate_PHNArray(struct PH_Node **p2_node, uint32_t tau)
 		PHNArray[i].end_seed_id = -1;
 		PHNArray[i].tau = -1;
 	}
-	PHNArray[1].start_seed_id = 0;		//index start by 1
+	PHNArray[1].start_seed_id = 0;
 	PHNArray[1].end_seed_id = tau;
 	PHNArray[1].tau = tau;
 	uint32_t cnt = 0;
@@ -93,21 +93,6 @@ void generate_PHNArray(struct PH_Node **p2_node, uint32_t tau)
 		cout <<(*p2_node)[i].tau << " " << (*p2_node)[i].start_seed_id << "-" << (*p2_node)[i].end_seed_id << "\t";
 	}
 
-}
-
-uint32_t PHNode_index(struct PH_Node *p_nodeA, struct PH_Node NodeT)
-{
-	uint32_t tau = p_nodeA[1].end_seed_id;
-	uint32_t level = ceil(log(tau+1) / log(2));
-	uint32_t nodenum = pow(2,level+1);
-	for(uint32_t i = 1; i < nodenum; ++i)
-	{
-		if(NodeT.start_seed_id == p_nodeA[i].start_seed_id && NodeT.end_seed_id == p_nodeA[i].end_seed_id && NodeT.tau == p_nodeA[i].tau)
-		{
-			return i;
-		}
-	}
-	return 0;  //not found
 }
 
 void generate_candidatePath(const vector<ms_seed> & vseed, sFMindex nfmindx, vector<candiPath> & vcadipth, uint32_t freqthld)
