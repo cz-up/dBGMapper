@@ -78,7 +78,7 @@ int main(int argc, char** argv)
 	struct sFMindex nFMidx,rFMidx;
 	struct build_para bd_para;
 	read_bfile2index(nindex,&nFMidx,0);
-//	read_bfile2index(rindex,&rFMidx,0);
+	read_bfile2index(rindex,&rFMidx,0);
 //
 //	cout <<"start..."<<endl;
 //
@@ -108,13 +108,13 @@ int main(int argc, char** argv)
 		ext_set.FMidx = rFMidx;
 	}
 
-	init_rootnode(&rootnode, ext_set, kmertest);
+	init_rootnode(&rootnode, ext_set);
 	for(int i = 0; i < loop; ++i)
 	{
-		ext_treenode(ext_set, &rootnode, kmertest,extlen+tau);
+		ext_treenode(ext_set, &rootnode,extlen+tau);
 	}
 	cout << "ext_treenode finished!" << endl;
-	char *extseq = new char[extlen+2]();
+	char *extseq = new char[extlen+5]();
 	print_extree(rootnode, extseq);
 	cout << "print_extree done!\n";
 	/*

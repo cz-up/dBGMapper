@@ -59,9 +59,8 @@ struct seed_segment
 //	uint32_t *
 };
 
-void init_rootnode(struct TPTnode *pnode,struct seed_extpara ext_para, char *seq);
-void ext_treenode(struct seed_extpara &ref_para, struct TPTnode *pnode,\
-		char *seq, uint32_t extlen);
+void init_rootnode(struct TPTnode *pnode,struct seed_extpara ext_para);
+void ext_treenode(struct seed_extpara &ref_para, struct TPTnode *pnode, uint32_t extlen);
 void print_extree(struct TPTnode node,char *seq);
 void print_specificlen(struct TPTnode node,struct seed_extpara ext_set, uint32_t extlen, char *seq, struct seed_segment *ps_segment);
 void destory_extree(struct TPTnode *pnode);
